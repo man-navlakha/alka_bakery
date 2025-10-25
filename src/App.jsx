@@ -3,6 +3,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
 import Main from "./pages/Main";
+import AdminProducts from "./pages/AdminProducts";
 import ShopPage from "./pages/ShopPage";
 import CartPage from "./components/self/CartPage";
 import CheckoutPage from "./components/self/CheckoutPage";
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/" element={<Main />} />
+        <Route path="/admin" element={<AdminProducts />} />
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />

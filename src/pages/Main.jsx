@@ -1,126 +1,180 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../components/self/Navbar'; //
 import ContactForm from '../components/self/ContactForm'; //
-import { Button } from '@/components/ui/button'; // Assuming you have this
+import { Button } from '@/components/ui/button'; //
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; //
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Assuming you have this
 import { apiFetch } from "../Context/apiFetch"; //
-// Optional: Use one of your cool background components
-// import GradientBlinds from '@/components/GradientBlinds'; //
-// import Aurora from '@/components/Aurora'; //
+import Aurora from '@/components/Aurora'; //
+import SplitText from '@/components/SplitText'; //
+import { motion } from 'framer-motion'; // Assuming framer-motion is installed (it's in package.json)
 
-// Simple Footer Component (You can create this in a separate file)
+// Simple Footer Component (Reusing from original)
 const Footer = () => (
-  <footer className="bg-pink-100 dark:bg-zinc-800 text-center p-4 mt-12">
-    <p className="text-sm text-pink-700 dark:text-pink-300">
-      &copy; {new Date().getFullYear()} Alka Bakery. All rights reserved.
-    </p>
-  </footer>
+    <footer className="bg-pink-100 dark:bg-zinc-800 text-center p-6 mt-20">
+        <p className="text-sm text-pink-700 dark:text-pink-300">
+            &copy; {new Date().getFullYear()} Alka Bakery. Freshly Baked Happiness. ✨
+        </p>
+         {/* Add social media links or other info if desired */}
+    </footer>
 );
 
 // --- Redesigned Main Home Page ---
 const Main = () => {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const [featuredProducts, setFeaturedProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        // Fetch all products and take the first few as featured
-        const allProducts = await apiFetch("http://localhost:3000/api/products"); //
-        setFeaturedProducts(allProducts.slice(0, 3)); // Show first 3 products
-      } catch (error) {
-        console.error("Failed to fetch featured products:", error);
-      } finally {
-        setLoading(false);
-      }
+    useEffect(() => {
+        const fetchFeatured = async () => {
+            setLoading(true);
+            try {
+const allProducts = await apiFetch("http://localhost:3000/api/products"); 
+                setFeaturedProducts(allProducts.slice(0, 4));
+            } catch (error) {
+                console.error("Failed to fetch featured products:", error);
+                // Optionally set an error state here
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFeatured();
+    }, []);
+
+    // Animation variants for Framer Motion
+    const cardVariants = {
+        hidden: { opacity: 0, y: 30 },
+        visible: (i) => ({
+            opacity: 1,
+            y: 0,
+            transition: {
+                delay: i * 0.1,
+                duration: 0.5,
+                ease: "easeOut"
+            }
+        })
     };
-    fetchFeatured();
-  }, []);
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar /> {/* */}
+    return (
+        <div className="flex flex-col min-h-screen bg-gradient-to-b from-yellow-50 via-white to-pink-50 dark:from-zinc-900 dark:via-zinc-800 dark:to-pink-950">
+            <Navbar /> {/* */}
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 text-center bg-gradient-to-br from-yellow-50 to-pink-100 dark:from-zinc-900 dark:to-pink-950 overflow-hidden">
-        {/* Optional Background Animation */}
-        {/* <div className="absolute inset-0 opacity-30 z-0">
-          <GradientBlinds gradientColors={['#FFDAB9', '#FFC0CB', '#FFFACD']} />
-        </div> */}
-        <div className="relative z-10">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-pink-700 dark:text-pink-300 mb-4">
-            Welcome to Alka Bakery 🍰
-          </h1>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 max-w-2xl mx-auto">
-            Freshly baked delights made with love, delivered right to your doorstep.
-          </p>
-          <Link to="/shop">
-            <Button size="lg" className="bg-pink-600 hover:bg-pink-700 text-white dark:bg-pink-500 dark:hover:bg-pink-600">
-              Shop Now
-            </Button>
-          </Link>
+            {/* Hero Section with Aurora Background */}
+            <section className="relative h-[80vh] min-h-[500px] flex items-center justify-center text-center overflow-hidden px-4">
+                <div className="absolute inset-0 z-0 opacity-40 dark:opacity-60">
+                    <Aurora
+                        colorStops={['#FFDAB9', '#FFC0CB', '#FFFACD', '#FFB6C1']} // Example warm bakery colors
+                        amplitude={0.3}
+                        blend={0.8}
+                    /> {/* */}
+                </div>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="relative z-10 max-w-3xl"
+                >
+                    {/* Animated Heading using SplitText */}
+                    <SplitText
+                        text="Baked Fresh, Just For You 🍰"
+                        tag="h1"
+                        className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-pink-800 dark:text-pink-200 mb-5 leading-tight"
+                        splitType="chars"
+                        delay={30} // Faster delay per character
+                        duration={0.5}
+                        ease="back.out(1.7)"
+                        from={{ opacity: 0, scale: 0.5, y: 50 }}
+                        to={{ opacity: 1, scale: 1, y: 0 }}
+                    /> {/* */}
+
+                    <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-10 mx-auto max-w-xl">
+                        Experience the warmth and delight of Alka Bakery. Every bite is crafted with passion and the finest ingredients.
+                    </p>
+                    <Link to="/shop">
+                        <Button size="lg" className="bg-pink-600 hover:bg-pink-700 text-white dark:bg-pink-500 dark:hover:bg-pink-600 shadow-lg transform hover:scale-105 transition-transform duration-200 px-8 py-3">
+                            Explore Our Menu
+                        </Button> {/* */}
+                    </Link>
+                </motion.div>
+            </section>
+
+            {/* "Our Promise" Section */}
+             <section className="py-16 md:py-24 bg-white dark:bg-zinc-800 px-4 sm:px-6 lg:px-8 shadow-inner">
+                <div className="max-w-4xl mx-auto text-center">
+                    <h2 className="text-3xl font-bold text-zinc-800 dark:text-zinc-100 mb-4">Our Promise</h2>
+                    <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                        At Alka Bakery, we believe in the magic of baking. We use traditional recipes, quality ingredients, and a sprinkle of love in everything we create. From celebratory cakes to everyday treats, freshness and flavor are guaranteed. 💖
+                    </p>
+                    {/* Optional: Add icons or small images here */}
+                </div>
+            </section>
+
+            {/* Featured Products Section with Animation */}
+            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+                <h2 className="text-3xl font-bold text-center text-zinc-800 dark:text-zinc-100 mb-12">
+                    Taste Our Favorites
+                </h2>
+                {loading ? (
+                    <p className="text-center text-zinc-500 dark:text-zinc-400">Loading delicious treats...</p>
+                ) : featuredProducts.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                        {featuredProducts.map((product, index) => (
+                            <motion.div
+                                key={product.id}
+                                custom={index} // Pass index for staggered delay
+                                initial="hidden"
+                                whileInView="visible"
+                                viewport={{ once: true, amount: 0.3 }} // Trigger when 30% is visible
+                                variants={cardVariants}
+                            >
+                                <Card className="overflow-hidden h-full flex flex-col hover:shadow-xl transition-shadow duration-300 dark:bg-zinc-800 border border-pink-100 dark:border-zinc-700 rounded-xl"> {/* */}
+                                    <CardHeader className="p-0"> {/* */}
+                                        <img
+                                            src={product.image || 'https://via.placeholder.com/400x300?text=Alka+Bakery'} // Placeholder
+                                            alt={product.name}
+                                            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
+                                        />
+                                    </CardHeader>
+                                    <CardContent className="p-4 flex flex-col flex-grow"> {/* */}
+                                        <CardTitle className="text-md font-semibold mb-1 text-zinc-900 dark:text-zinc-100 line-clamp-2 flex-grow"> {/* */}
+                                            {product.name}
+                                        </CardTitle>
+                                        <p className="text-pink-600 dark:text-pink-400 font-bold my-2 text-lg">
+                                            ₹{product.price}
+                                        </p>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 line-clamp-2">
+                                            {product.description || 'A delicious treat from Alka Bakery.'}
+                                        </p>
+                                        <Link to={`/shop`} className="mt-auto block">
+                                            <Button variant="outline" className="w-full border-pink-500 text-pink-500 hover:bg-pink-50 hover:text-pink-600 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-700 dark:hover:text-pink-300"> {/* */}
+                                                View Item
+                                            </Button>
+                                        </Link>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-zinc-500 dark:text-zinc-400">No featured products available right now. Check back soon!</p>
+                )}
+                <div className="text-center mt-16">
+                   <Link to="/shop">
+                       <Button variant="link" size="lg" className="text-pink-600 dark:text-pink-400 text-lg hover:underline">
+                           See Full Menu &rarr;
+                       </Button> {/* */}
+                   </Link>
+                </div>
+            </section>
+
+            {/* Contact Section */}
+            <section id="contact" className="pt-16 md:pt-24">
+                 <ContactForm /> {/* */}
+            </section>
+
+            {/* Footer */}
+            <Footer />
         </div>
-      </section>
-
-      {/* Featured Products Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-center text-zinc-800 dark:text-zinc-200 mb-10">
-          Our Best Sellers
-        </h2>
-        {loading ? (
-          <p className="text-center text-zinc-500">Loading goodies...</p>
-        ) : featuredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {featuredProducts.map((product) => (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow duration-300 dark:bg-zinc-800">
-                <CardHeader className="p-0">
-                  <img
-                    src={product.image || 'https://via.placeholder.com/400x300?text=No+Image'} // Fallback image
-                    alt={product.name}
-                    className="rounded-t-lg w-full h-48 object-cover"
-                  />
-                </CardHeader>
-                <CardContent className="p-4">
-                  <CardTitle className="text-lg font-semibold mb-1 text-zinc-900 dark:text-zinc-100">
-                    {product.name}
-                  </CardTitle>
-                  <p className="text-pink-600 dark:text-pink-400 font-bold mb-3">
-                    ₹{product.price}
-                  </p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 line-clamp-2">
-                    {product.description || 'Deliciously baked item.'}
-                  </p>
-                  <Link to={`/shop`}> {/* Link to shop, ideally later to product page */}
-                    <Button variant="outline" className="w-full border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-700">
-                      View Details
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-zinc-500">No featured products available right now.</p>
-        )}
-        <div className="text-center mt-12">
-           <Link to="/shop">
-               <Button variant="link" className="text-pink-600 dark:text-pink-400">
-                   View All Products &rarr;
-               </Button>
-           </Link>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact">
-         <ContactForm /> {/* */}
-      </section>
-
-      {/* Footer */}
-      <Footer />
-    </div>
-  );
+    );
 }
 
 export default Main;
