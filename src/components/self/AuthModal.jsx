@@ -9,6 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "../../Context/AuthProvider";
+
 
 export default function AuthModal({ onAuthSuccess }) {
   const [open, setOpen] = useState(false);
@@ -16,46 +18,46 @@ export default function AuthModal({ onAuthSuccess }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { login: contextLogin } = useAuth();
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const endpoint = isLogin
-      ? "http://localhost:3000/api/auth/login"
-      : "http://localhost:3000/api/auth/register";
+    if (isLogin) {
+        const result = await contextLogin(form.email, form.password);
+        if (result.success) {
+            onAuthSuccess?.(result.user); // Pass user data if needed
+            setOpen(false);
+        } else {
+            setError(result.message);
+        }
+        setLoading(false);
+    } else {
+        // Registration logic remains similar, but ensure it doesn't try
+        // to store the refresh token received in the response.
+        try {
+            const endpoint = "http://localhost:3000/api/auth/register";
+            const payload = form; // Contains name, email, password
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Something went wrong");
 
-    const payload = isLogin
-      ? { email: form.email, password: form.password }
-      : form;
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Something went wrong");
-
-      if (isLogin) {
-        localStorage.setItem("token", data.token );
-        onAuthSuccess?.(data);
-        setOpen(false);
-      } else {
-        alert("Registration successful! Please login now.");
-        setIsLogin(true);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+            alert("Registration successful! Please login now.");
+            setIsLogin(true); // Switch to login view
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     }
-  };
+};
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

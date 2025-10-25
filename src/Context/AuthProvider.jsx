@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
                 const res = await fetch("http://localhost:3000/api/auth/refresh-token", {
                     method: "POST",
                     credentials: "include",
+                    headers: { Authorization: `Bearer ${data.accessToken}` },
                 });
 
                 if (!res.ok) {

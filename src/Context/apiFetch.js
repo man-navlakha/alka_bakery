@@ -15,7 +15,8 @@ export const apiFetch = async (url, options = {}) => {
   if (res.status === 401) {
     const refreshRes = await fetch("http://localhost:3000/api/auth/refresh-token", {
       method: "POST",
-      credentials: "include",
+      // NO body here
+      credentials: "include", // Keep this
     });
 
     if (refreshRes.ok) {
