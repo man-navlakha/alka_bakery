@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Menu, X, ShoppingCart, User } from "lucide-react"; // Added ShoppingCart, User
 import { useAuth } from "../../Context/AuthProvider";
-import { Link } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
+import { Link, Navigate } from "react-router-dom";
 import AuthModal from "./AuthModal"; // Assuming AuthModal is here
 import { Button } from "@/components/ui/button"; // Using Button component
 
@@ -9,7 +10,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-
+const navigate = useNavigate();
   const handleAuthSuccess = (userData) => {
     // AuthProvider should handle setting the user state upon successful login
     // This function can be used for any post-login UI updates if needed
@@ -54,9 +55,9 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-3">
           {user ? (
             <>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
-              </span>
+             <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
+      <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
+    </span>
               <Button variant="outline" size="sm" onClick={logout} className="border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-800">
                 Logout
               </Button>
@@ -115,9 +116,9 @@ export default function Navbar() {
           <div className="flex flex-col space-y-3 pt-4">
             {user ? (
               <>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
-                   <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
-                </span>
+                 <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
+      <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
+    </span>
                 <Button variant="outline" onClick={() => { logout(); setMobileMenuOpen(false); }} className="w-full justify-start border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-800">
                   Logout
                 </Button>

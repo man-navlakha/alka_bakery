@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { apiFetch } from "../../Context/apiFetch";
+import { toast } from "sonner";
 
 export default function AddProductForm({ product, onProductAdded, onCancel }) {
   const [form, setForm] = useState({
@@ -43,12 +45,11 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
       setForm({ ...form, [name]: value });
     }
   };
-
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setSuccess("");
+    setSuccess(""); // Clear previous success message
 
     try {
       const formData = new FormData();
@@ -56,34 +57,47 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
       formData.append("price", form.price);
       formData.append("category", form.category);
       formData.append("description", form.description);
-      if (form.image) formData.append("image", form.image);
+      // Only append image if one was selected
+      if (form.image instanceof File) {
+         formData.append("image", form.image);
+      }
 
-      const res = await fetch(
-        isEdit
-          ? `http://localhost:3000/api/products/${product.id}`
-          : "http://localhost:3000/api/products",
-        {
-          method: isEdit ? "PUT" : "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      const url = isEdit
+        ? `http://localhost:3000/api/products/${product.id}`
+        : "http://localhost:3000/api/products";
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed");
+      const method = isEdit ? "PUT" : "POST";
+         const data = await apiFetch(url, {
+        method: method,
+        // *** No 'Content-Type' header here! ***
+        // Let the browser set it automatically for FormData
+        // apiFetch will add the Authorization header
+        body: formData, // Send FormData directly
+      });
+// Assuming your backend returns the product data nested under a 'product' key
+      const resultProduct = data.product || data; // Adjust if the structure differs
 
-      setSuccess(isEdit ? "Product updated successfully!" : "Product added successfully!");
-      onProductAdded?.(data);
-      if (!isEdit) setForm({ name: "", price: "", category: "", description: "", image: null });
+      const successMessage = isEdit ? "Product updated successfully!" : "Product added successfully!";
+      setSuccess(successMessage); // Keep internal success state if needed
+      toast.success(successMessage); // Show toast notification
+
+      onProductAdded?.(resultProduct); // Pass the actual product data back
+
+      // Only reset form if it was an "add" operation
+      if (!isEdit) {
+        setForm({ name: "", price: "", category: "", description: "", image: null });
+        setPreview(null); // Clear preview as well
+      }
+
     } catch (err) {
-      setError(err.message);
+      console.error("Product submission failed:", err);
+      const errorMessage = err.message || (isEdit ? "Failed to update product" : "Failed to add product");
+      setError(errorMessage);
+      toast.error(errorMessage); // Show error toast
     } finally {
       setLoading(false);
     }
-  };
-
+};
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative">
