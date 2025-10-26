@@ -18,6 +18,8 @@ import AdminProductManagement from "./pages/admin/AdminProductManagement"; // Re
 import AdminOrderManagement from "./pages/admin/AdminOrderManagement"; // Renamed/Refactored
 import ProductPage from "./components/self/ProductPage";
 import Cart from "./components/self/Cart";
+import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
+import AdminUnitManagement from "./pages/admin/AdminUnitManagement";
 
 export default function App() {
   return (
@@ -43,6 +45,8 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProductManagement />} />
           <Route path="/admin/orders" element={<AdminOrderManagement />} />
+          <Route path="/admin/categories" element={<AdminCategoryManagement />} />
+          <Route path="/admin/units" element={<AdminUnitManagement />} />
            {/* Redirect /admin to dashboard */}
           <Route path="/admin" element={<AdminDashboard />} />
         </Route>
