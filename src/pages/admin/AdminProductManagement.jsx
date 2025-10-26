@@ -99,8 +99,12 @@ export default function AdminProductManagement() {
                   className="w-full h-40 object-cover rounded-lg mb-3"
                 />
                 <h3 className="text-md font-semibold text-gray-800">{product.name}</h3>
-                <p className="text-sm text-gray-500">{product.category}</p>
+                <p className="text-sm text-gray-500">{product.categories?.name || 'Uncategorized'}</p>
                 <p className="text-pink-600 font-bold mt-1">₹{product.price}</p>
+                {/* Display unit if available */}
+                {product.units?.name && (
+                  <span className="text-xs text-gray-400 ml-1">/{product.units.name}</span>
+                )}
                 <p className="text-gray-600 text-xs mt-2 line-clamp-3">{product.description}</p>
               </div>
 

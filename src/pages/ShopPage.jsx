@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../Context/apiFetch";
-import FilterSidebar from "../components/self/FilterSidebar";
-import ProductGrid from "../components/self/ProductGrid";
-import ProductQuickView from "../components/self/ProductQuickView";
+import FilterSidebar from "../components/self/shop/FilterSidebar";
+import ProductGrid from "../components/self/shop/ProductGrid";
+import ProductQuickView from "../components/self/shop/ProductQuickView";
 import CartPreview from "../components/self/CartPage";
 import Navbar from "../components/self/Navbar";
 import { Toaster } from "sonner";
 
-export default function ShopPage() {
+  export default function ShopPage() {
   const [products, setProducts] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+  const [categories, setCategories] = useState([]); // Will store fetched categories {id, name}
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   // Quick view modal
   const [quickId, setQuickId] = useState(null);
 
@@ -20,66 +20,78 @@ export default function ShopPage() {
   const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
+    const fetchInitialData = async () => {
+      setLoadingProducts(true);
+      setLoadingCategories(true);
       try {
-        const data = await apiFetch("http://localhost:3000/api/products");
-        setProducts(data);
-        setFiltered(data);
+        const [productsData, categoriesData] = await Promise.all([
+           apiFetch("http://localhost:3000/api/products"),
+           apiFetch("http://localhost:3000/api/categories") // Fetch categories
+        ]);
 
-        // build categories dynamically
-        const cats = Array.from(new Set((data || []).map((p) => p.category).filter(Boolean)));
-        setCategories(cats);
+        setProducts(productsData || []);
+        setFiltered(productsData || []);
+        setCategories(categoriesData || []); // Set fetched categories
+
       } catch (err) {
-        console.error("Failed to load products", err);
+        console.error("Failed to load initial shop data", err);
+        toast.error("Failed to load shop data. Please refresh.");
       } finally {
-        setLoading(false);
+        setLoadingProducts(false);
+        setLoadingCategories(false);
       }
     };
-    fetchProducts();
+    fetchInitialData();
   }, []);
 
   const handleFilter = (filters) => {
     let result = [...products];
 
-    if (filters.category) result = result.filter((p) => p.category === filters.category);
+    if (filters.category) {
+        result = result.filter((p) => p.category_id === parseInt(filters.category));
+    }
+    
     if (filters.priceRange) {
       result = result.filter(
         (p) => Number(p.price) >= filters.priceRange[0] && Number(p.price) <= filters.priceRange[1]
       );
     }
-    if (filters.sort) {
+   if (filters.sort) {
       if (filters.sort === "low") result.sort((a, b) => Number(a.price) - Number(b.price));
       if (filters.sort === "high") result.sort((a, b) => Number(b.price) - Number(a.price));
-      if (filters.sort === "new") result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      if (filters.sort === "new") result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Ensure created_at exists
     }
-    if (filters.search) {
+     if (filters.search) {
       const q = filters.search.toLowerCase();
       result = result.filter((p) => p.name.toLowerCase().includes(q) || (p.description||"").toLowerCase().includes(q));
     }
 
+
     setFiltered(result);
   };
 
-  return (
+  const isLoading = loadingProducts || loadingCategories;
+return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-pink-50 dark:from-zinc-900 dark:to-pink-950">
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <Toaster richColors position="top-center" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex gap-8">
-          <div className="w-72 hidden lg:block">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="w-full lg:w-72">
+             {/* Pass fetched categories */}
             <FilterSidebar categories={categories} onFilterChange={handleFilter} />
           </div>
 
           <div className="flex-1">
-            <ProductGrid products={filtered} loading={loading} onQuickView={(id) => setQuickId(id)} onOpenCart={() => setCartOpen(true)} />
+             {/* Pass product loading state */}
+            <ProductGrid products={filtered} loading={loadingProducts} onQuickView={(id) => setQuickId(id)} onOpenCart={() => setCartOpen(true)} />
           </div>
         </div>
       </main>
 
-      {quickId && <ProductQuickView id={quickId} onClose={() => setQuickId(null)} onAddToCart={() => setCartOpen(true)} />}
-
-      <CartPreview open={cartOpen} onClose={() => setCartOpen(false)} />
+      {/* ... (QuickView and CartPreview remain the same) */}
+       {quickId && <ProductQuickView id={quickId} onClose={() => setQuickId(null)} onAddToCart={() => setCartOpen(true)} />}
+       <CartPreview open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   );
 }

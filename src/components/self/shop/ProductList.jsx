@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import AddProductForm from "./AddProductForm";
+import AddProductForm from "../AddProductForm";
 import { Button } from "@/components/ui/button";
 
 export default function ProductList() {

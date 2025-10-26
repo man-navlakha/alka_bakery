@@ -16,7 +16,7 @@ import AdminRoute from "./AdminRoute"; // Import the protector component
 import AdminDashboard from "./pages/admin/AdminDashboard"; // New Dashboard
 import AdminProductManagement from "./pages/admin/AdminProductManagement"; // Renamed/Refactored
 import AdminOrderManagement from "./pages/admin/AdminOrderManagement"; // Renamed/Refactored
-import ProductPage from "./components/self/ProductPage";
+import ProductPage from "./components/self/shop/ProductPage";
 import Cart from "./components/self/Cart";
 import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
 import AdminUnitManagement from "./pages/admin/AdminUnitManagement";
