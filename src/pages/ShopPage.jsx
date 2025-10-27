@@ -3,7 +3,7 @@ import { apiFetch } from "../Context/apiFetch";
 import FilterSidebar from "../components/self/shop/FilterSidebar";
 import ProductGrid from "../components/self/shop/ProductGrid";
 import ProductQuickView from "../components/self/shop/ProductQuickView";
-import CartPreview from "../components/self/CartPage";
+// import CartPreview from "../components/self/CartPage";
 import Navbar from "../components/self/Navbar";
 import { Toaster } from "sonner";
 
@@ -73,25 +73,29 @@ import { Toaster } from "sonner";
   const isLoading = loadingProducts || loadingCategories;
 return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-pink-50 dark:from-zinc-900 dark:to-pink-950">
-      <Navbar onOpenCart={() => setCartOpen(true)} />
+      {/* Remove onOpenCart from Navbar */}
+      <Navbar />
       <Toaster richColors position="top-center" />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12"> {/* Added pt-24 */}
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="w-full lg:w-72">
-             {/* Pass fetched categories */}
             <FilterSidebar categories={categories} onFilterChange={handleFilter} />
           </div>
-
           <div className="flex-1">
-             {/* Pass product loading state */}
-            <ProductGrid products={filtered} loading={loadingProducts} onQuickView={(id) => setQuickId(id)} onOpenCart={() => setCartOpen(true)} />
+             {/* Remove onOpenCart from ProductGrid */}
+            <ProductGrid
+                products={filtered}
+                loading={loadingProducts}
+                onQuickView={(id) => setQuickId(id)}
+            />
           </div>
         </div>
       </main>
 
-      {/* ... (QuickView and CartPreview remain the same) */}
-       {quickId && <ProductQuickView id={quickId} onClose={() => setQuickId(null)} onAddToCart={() => setCartOpen(true)} />}
-       <CartPreview open={cartOpen} onClose={() => setCartOpen(false)} />
+       {/* Remove onAddToCart prop from ProductQuickView if it only opened the cart */}
+      {quickId && <ProductQuickView id={quickId} onClose={() => setQuickId(null)} />}
+
+      {/* Remove CartPreview component */}
     </div>
   );
 }

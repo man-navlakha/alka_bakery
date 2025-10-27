@@ -6,9 +6,9 @@ import Main from "./pages/Main";
 // Remove AdminProducts import if combining
 // import AdminProducts from "./pages/AdminProducts";
 import ShopPage from "./pages/ShopPage";
-import CartPage from "./components/self/CartPage";
-import CheckoutPage from "./components/self/CheckoutPage";
-import ThankYouPage from "./components/self/ThankYouPage";
+// import CartPage from "./components/self/CartPage";
+// import CheckoutPage from "./components/self/CheckoutPage";
+// import ThankYouPage from "./components/self/ThankYouPage";
 import TrackingPage from "./components/self/TrackingPage";
 
 // Import Admin components
@@ -17,7 +17,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard"; // New Dashboard
 import AdminProductManagement from "./pages/admin/AdminProductManagement"; // Renamed/Refactored
 import AdminOrderManagement from "./pages/admin/AdminOrderManagement"; // Renamed/Refactored
 import ProductPage from "./components/self/shop/ProductPage";
-import Cart from "./components/self/Cart";
+// import Cart from "./components/self/Cart";
 import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
 import AdminUnitManagement from "./pages/admin/AdminUnitManagement";
 
@@ -31,9 +31,9 @@ export default function App() {
         <Route path="/" element={<Main />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/shop" element={<ShopPage />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/thankyou" element={<ThankYouPage />} />
+        {/* <Route path="/cart" element={<Cart />} /> */}
+        {/* <Route path="/checkout" element={<CheckoutPage />} /> */}
+        {/* <Route path="/thankyou" element={<ThankYouPage />} /> */}
 
         {/* Logged In User Routes (Example - Profile & Tracking) */}
         {/* You might want a similar 'ProtectedRoute' for these */}

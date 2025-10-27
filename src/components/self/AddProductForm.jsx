@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "../../Context/apiFetch";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react"; // Added XCircle for removing images
 
 export default function AddProductForm({ product, onProductAdded, onCancel }) {
   const [form, setForm] = useState({
@@ -14,15 +14,22 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
     price: "",
     category_id: "",
     unit_id: "",
+    quantity: "", // Base quantity/size (optional)
+    min_quantity: "", // NEW
+    max_quantity: "", // NEW
+    quantity_step: "", // NEW
     description: "",
-    image: null,
+    image: null, // Main image file
+    images: [], // Gallery image files (File objects)
   });
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
-  const [loadingData, setLoadingData] = useState(true); // Loading state for dropdown data
+  const [loadingData, setLoadingData] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState(null); // Main image preview URL
+  const [galleryPreviews, setGalleryPreviews] = useState([]); // Gallery image preview URLs
+  const [existingGalleryImages, setExistingGalleryImages] = useState([]); // For editing [{id, image_url}]
   const isEdit = Boolean(product && product.id);
 
   // Populate form if editing
@@ -45,47 +52,114 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
       }
     };
     fetchData();
-  }, []);// Populate form if editing
+  }, []);
+  // Populate form if editing
   useEffect(() => {
     if (product) {
       setForm({
         name: product.name || "",
         price: product.price || "",
-        category_id: product.category_id || "", // Use category_id
-        unit_id: product.unit_id || "",         // Use unit_id
+        category_id: product.category_id || "",
+        unit_id: product.unit_id || "",
+        quantity: product.quantity || "",
+        min_quantity: product.min_quantity || "", // Populate new fields
+        max_quantity: product.max_quantity || "", // Populate new fields
+        quantity_step: product.quantity_step || "", // Populate new fields
         description: product.description || "",
-        image: null,
+        image: null, // Start fresh for main image file
+        images: [], // Start fresh for gallery files
       });
-      setPreview(product.image || null);
+      setPreview(product.image || null); // Show existing main image
+      setExistingGalleryImages(product.product_images || []); // Show existing gallery images
+      setGalleryPreviews([]); // Clear file previews
     } else {
-      // Reset form for adding, potentially setting default category/unit if desired
-      setForm({ name: "", price: "", category_id: "", unit_id: "", description: "", image: null });
+      // Reset form
+      setForm({ name: "", price: "", category_id: "", unit_id: "", quantity: "", min_quantity: "", max_quantity: "", quantity_step: "", description: "", image: null, images: [] });
       setPreview(null);
+      setGalleryPreviews([]);
+      setExistingGalleryImages([]);
     }
-  }, [product, categories, units]); // Re-run if categories/units load after product
+  }, [product, categories, units]);
+
+  const handleMainImageChange = (e) => {
+    const file = e.target.files[0];
+    setForm({ ...form, image: file });
+    setPreview(file ? URL.createObjectURL(file) : (product?.image || null));
+  };
+
+  const handleGalleryImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+    setForm(prev => ({ ...prev, images: [...prev.images, ...files] })); // Append new files
+
+    // Create previews for the newly added files
+    const newPreviews = files.map(file => ({
+      url: URL.createObjectURL(file),
+      file: file // Keep reference to the file object for removal
+    }));
+    setGalleryPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeNewGalleryImage = (fileObj) => {
+    // Remove from form state
+    setForm(prev => ({
+      ...prev,
+      images: prev.images.filter(f => f !== fileObj.file)
+    }));
+    // Remove from previews
+    setGalleryPreviews(prev => prev.filter(p => p.url !== fileObj.url));
+    // Revoke object URL to prevent memory leaks
+    URL.revokeObjectURL(fileObj.url);
+  };
+
+  const removeExistingGalleryImage = async (imageId) => {
+    if (!isEdit || !product || !imageId) return;
+    if (!window.confirm("Are you sure you want to delete this gallery image? This is permanent.")) return;
+
+    // Add API call here to delete the image from `product_images` table using its ID
+    try {
+      setLoading(true); // Indicate activity
+      await apiFetch(`http://localhost:3000/api/products/images/${imageId}`, { // Adjust endpoint if needed
+        method: 'DELETE',
+      });
+      setExistingGalleryImages(prev => prev.filter(img => img.id !== imageId));
+      toast.success("Gallery image deleted.");
+    } catch (err) {
+      console.error("Failed to delete gallery image:", err);
+      toast.error(err.message || "Failed to delete gallery image.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleChange = (e) => {
-    const { name, value, files, type } = e.target;
-    if (type === "file") {
-      setForm({ ...form, image: files[0] });
-      setPreview(files[0] ? URL.createObjectURL(files[0]) : (product?.image || null)); // Keep existing preview if no new file
-    } else {
-      setForm({ ...form, [name]: value });
-    }
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.category_id) {
-      setError("Please select a category.");
-      toast.error("Please select a category.");
+    // ... (Basic validations) ...
+    if (!form.category_id || !form.unit_id) {
+      setError("Please select both category and unit.");
+      toast.error("Please select both category and unit.");
       return;
     }
-    if (!form.unit_id) {
-      setError("Please select a unit.");
-      toast.error("Please select a unit.");
-      return;
+    // Validate quantity rules if provided
+    const min = parseFloat(form.min_quantity);
+    const max = parseFloat(form.max_quantity);
+    const step = parseFloat(form.quantity_step);
+    if (form.min_quantity && (isNaN(min) || min < 0)) {
+      setError("Minimum quantity must be a non-negative number."); return;
     }
+    if (form.max_quantity && (isNaN(max) || max <= 0 || (form.min_quantity && max < min))) {
+      setError("Maximum quantity must be a positive number and greater than or equal to minimum."); return;
+    }
+    if (form.quantity_step && (isNaN(step) || step <= 0)) {
+      setError("Quantity step must be a positive number."); return;
+    }
+
+
     setLoading(true);
     setError("");
 
@@ -93,12 +167,26 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("price", form.price);
-      formData.append("category_id", form.category_id); // Send category_id
-      formData.append("unit_id", form.unit_id);         // Send unit_id
+      formData.append("category_id", form.category_id);
+      formData.append("unit_id", form.unit_id);
       formData.append("description", form.description);
 
+      // Append optional quantity fields if they have values
+      if (form.quantity) formData.append("quantity", form.quantity);
+      if (form.min_quantity) formData.append("min_quantity", form.min_quantity);
+      if (form.max_quantity) formData.append("max_quantity", form.max_quantity);
+      if (form.quantity_step) formData.append("quantity_step", form.quantity_step);
+
+      // Append main image if selected
       if (form.image instanceof File) {
         formData.append("image", form.image);
+      }
+
+      // Append gallery images
+      if (form.images.length > 0) {
+        form.images.forEach((file) => {
+          formData.append("images", file); // Use 'images' key for backend
+        });
       }
 
       const url = isEdit
@@ -109,30 +197,28 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
       const data = await apiFetch(url, { method: method, body: formData });
       const resultProduct = data.product || data;
 
-      // Manually add category/unit names for immediate display update if needed
-      // (Ideally, the backend response includes these nested objects)
-      if (!resultProduct.categories && categories.length > 0) {
-        const category = categories.find(c => c.id === parseInt(resultProduct.category_id));
-        if (category) resultProduct.categories = { name: category.name };
-      }
-      if (!resultProduct.units && units.length > 0) {
-        const unit = units.find(u => u.id === parseInt(resultProduct.unit_id));
-        if (unit) resultProduct.units = { name: unit.name };
-      }
+      // Fetch updated product details including images for accurate UI update
+      const finalProductData = await apiFetch(`http://localhost:3000/api/products/${resultProduct.id}`);
 
-      const successMessage = isEdit ? "Product updated successfully!" : "Product added successfully!";
-      toast.success(successMessage);
-      onProductAdded?.(resultProduct);
+      toast.success(`Product ${isEdit ? "updated" : "added"} successfully!`);
+      onProductAdded?.(finalProductData); // Pass complete updated data
 
-      // Don't reset form if editing
+      // Reset specific fields after success
       if (!isEdit) {
-        setForm({ name: "", price: "", category_id: "", unit_id: "", description: "", image: null });
+        setForm({ name: "", price: "", category_id: "", unit_id: "", quantity: "", min_quantity: "", max_quantity: "", quantity_step: "", description: "", image: null, images: [] });
         setPreview(null);
+        setGalleryPreviews([]);
+        setExistingGalleryImages([]);
       } else {
-        // If editing, ensure the preview reflects the potentially updated image (or lack thereof)
-        setPreview(resultProduct.image || null)
-        setForm(prev => ({ ...prev, image: null })); // Clear the file input state after successful upload
+        // Clear file inputs but keep other data for potential further edits
+        setForm(prev => ({ ...prev, image: null, images: [] }));
+        setPreview(finalProductData.image || null); // Update preview with saved image URL
+        setExistingGalleryImages(finalProductData.product_images || []); // Update existing gallery
+        setGalleryPreviews([]); // Clear new file previews
       }
+      // Revoke temporary object URLs for gallery previews to prevent memory leaks
+      galleryPreviews.forEach(p => URL.revokeObjectURL(p.url));
+
 
     } catch (err) {
       console.error("Product submission failed:", err);
@@ -215,6 +301,38 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
             </select>
             {units.length === 0 && !loadingData && <p className="text-xs text-red-500 mt-1">No units loaded. <a href="/admin/units" className="underline">Add units here</a>.</p>}
           </div>
+
+          <div>
+            <Label htmlFor="quantity">Base Quantity / Size (Optional)</Label>
+            <Input
+              id="quantity"
+              type="number"
+              name="quantity"
+              value={form.quantity}
+              onChange={handleChange}
+              placeholder="e.g., 500 (if unit is 'g')"
+              disabled={loading}
+              step="any" // Allow decimals if needed
+            />
+            <p className="text-xs text-gray-500 mt-1">Enter the base amount this price corresponds to (e.g., 500 for 500g).</p>
+          </div>
+
+          {/* NEW Quantity Control Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="min_quantity">Min Quantity</Label>
+              <Input id="min_quantity" type="number" name="min_quantity" value={form.min_quantity} onChange={handleChange} placeholder="e.g., 0.5" disabled={loading} step="any" />
+            </div>
+            <div>
+              <Label htmlFor="max_quantity">Max Quantity (Optional)</Label>
+              <Input id="max_quantity" type="number" name="max_quantity" value={form.max_quantity} onChange={handleChange} placeholder="e.g., 5" disabled={loading} step="any" />
+            </div>
+            <div>
+              <Label htmlFor="quantity_step">Quantity Step</Label>
+              <Input id="quantity_step" type="number" name="quantity_step" value={form.quantity_step} onChange={handleChange} placeholder="e.g., 0.5" disabled={loading} step="any" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 -mt-2">Define purchase increments (e.g., Min 0.5, Step 0.5 for kg; Min 50, Step 50 for g; Min 1, Step 1 for pcs). Leave blank to use defaults.</p>
           <div>
             <Label>Description</Label>
             <Textarea name="description" value={form.description} onChange={handleChange} placeholder="Delicious dark chocolate cake" rows={4} required disabled={loading} />
@@ -224,6 +342,56 @@ export default function AddProductForm({ product, onProductAdded, onCancel }) {
             <Input type="file" name="image" accept="image/*" onChange={handleChange} disabled={loading} />
             {preview && (
               <img src={preview} alt="Preview" className="mt-2 w-full h-48 object-cover rounded-lg border border-gray-200" />
+            )}
+          </div>
+
+          {/* Gallery Images */}
+          <div>
+            <Label htmlFor="gallery-images">Gallery Images (Optional)</Label>
+            <Input id="gallery-images" type="file" name="images" accept="image/*" multiple onChange={handleGalleryImagesChange} disabled={loading} />
+
+            {/* Display Existing Gallery Images (for Edit mode) */}
+            {isEdit && existingGalleryImages.length > 0 && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {existingGalleryImages.map(img => (
+                  <div key={img.id} className="relative group">
+                    <img src={img.image_url} alt="Existing gallery" className="w-full h-24 object-cover rounded border" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon-sm"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeExistingGalleryImage(img.id)}
+                      aria-label="Delete existing gallery image"
+                      disabled={loading}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Display New Gallery Image Previews */}
+            {galleryPreviews.length > 0 && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {galleryPreviews.map((p, index) => (
+                  <div key={index} className="relative group">
+                    <img src={p.url} alt={`New gallery preview ${index + 1}`} className="w-full h-24 object-cover rounded border" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon-sm"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeNewGalleryImage(p)}
+                      aria-label="Remove new gallery image"
+                      disabled={loading}
+                    >
+                      <XCircle size={14} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

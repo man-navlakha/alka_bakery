@@ -10,7 +10,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const handleAuthSuccess = (userData) => {
     // AuthProvider should handle setting the user state upon successful login
     // This function can be used for any post-login UI updates if needed
@@ -21,7 +21,7 @@ const navigate = useNavigate();
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/shop", label: "Shop" },
-    { href: "/cart", label: "Cart", icon: <ShoppingCart size={18} /> },
+    // { href: "/cart", label: "Cart", icon: <ShoppingCart size={18} /> },
     // Conditionally add Admin link
     ...(user?.role === "admin" ? [{ href: "/admin/orders", label: "Admin Orders" }] : []),
     // Conditionally add Tracking link
@@ -55,15 +55,15 @@ const navigate = useNavigate();
         <div className="hidden md:flex items-center space-x-3">
           {user ? (
             <>
-             <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
-      <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
-    </span>
+              <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
+                <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
+              </span>
               <Button variant="outline" size="sm" onClick={logout} className="border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-800">
                 Logout
               </Button>
             </>
           ) : (
-             <AuthModal onAuthSuccess={handleAuthSuccess} /> // Use the modal component directly
+            <AuthModal onAuthSuccess={handleAuthSuccess} /> // Use the modal component directly
           )}
         </div>
 
@@ -79,24 +79,22 @@ const navigate = useNavigate();
 
       {/* Mobile Menu Drawer */}
       <div
-        className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden transition-opacity duration-300 ${
-          mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden transition-opacity duration-300 ${mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
         onClick={() => setMobileMenuOpen(false)} // Close on overlay click
       />
       <div
-        className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-zinc-900 shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-zinc-900 shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="p-5 pt-20 flex flex-col space-y-4">
-           {/* Close button inside drawer */}
-           <button
-             className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400"
-             onClick={() => setMobileMenuOpen(false)}
-           >
-             <X size={24} />
-           </button>
+          {/* Close button inside drawer */}
+          <button
+            className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <X size={24} />
+          </button>
 
           {navLinks.map((link) => (
             <Link
@@ -110,31 +108,31 @@ const navigate = useNavigate();
             </Link>
           ))}
 
-          <hr className="border-pink-100 dark:border-zinc-700 my-4"/>
+          <hr className="border-pink-100 dark:border-zinc-700 my-4" />
 
           {/* Auth Buttons / User Info - Mobile */}
           <div className="flex flex-col space-y-3 pt-4">
             {user ? (
               <>
-                 <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
-      <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
-    </span>
+                <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
+                  <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
+                </span>
                 <Button variant="outline" onClick={() => { logout(); setMobileMenuOpen(false); }} className="w-full justify-start border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-800">
                   Logout
                 </Button>
               </>
             ) : (
-                // In mobile, maybe just show the button that opens the modal
-                 <Button className="bg-pink-600 hover:bg-pink-700 text-white w-full justify-start" onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}>Login / Register</Button>
+              // In mobile, maybe just show the button that opens the modal
+              <Button className="bg-pink-600 hover:bg-pink-700 text-white w-full justify-start" onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}>Login / Register</Button>
             )}
           </div>
         </div>
       </div>
 
-       {/* Conditionally render AuthModal */}
-       {authModalOpen && !user && (
-         <AuthModal onAuthSuccess={handleAuthSuccess} />
-       )}
+      {/* Conditionally render AuthModal */}
+      {authModalOpen && !user && (
+        <AuthModal onAuthSuccess={handleAuthSuccess} />
+      )}
     </>
   );
 }
