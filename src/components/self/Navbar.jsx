@@ -1,138 +1,210 @@
 import React, { useState } from "react";
-import { Menu, X, ShoppingCart, User } from "lucide-react"; // Added ShoppingCart, User
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Search, ShoppingBag, User, ChevronLeft, LogOut } from "lucide-react";
 import { useAuth } from "../../Context/AuthProvider";
-import { useNavigate } from 'react-router-dom';
-import { Link, Navigate } from "react-router-dom";
-import AuthModal from "./AuthModal"; // Assuming AuthModal is here
-import { Button } from "@/components/ui/button"; // Using Button component
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+  // --- Hooks ---
+  const location = useLocation();
   const navigate = useNavigate();
-  const handleAuthSuccess = (userData) => {
-    // AuthProvider should handle setting the user state upon successful login
-    // This function can be used for any post-login UI updates if needed
-    console.log("Auth success in Navbar:", userData);
-    setAuthModalOpen(false); // Close modal on success
-  };
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  
+  // --- Logic ---
+  const isHome = location.pathname === "/";
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/shop", label: "Shop" },
-    // { href: "/cart", label: "Cart", icon: <ShoppingCart size={18} /> },
-    // Conditionally add Admin link
-    ...(user?.role === "admin" ? [{ href: "/admin/orders", label: "Admin Orders" }] : []),
-    // Conditionally add Tracking link
-    ...(user ? [{ href: "/tracking", label: "Track Orders" }] : []),
+    { label: "HOME", path: "/" },
+    { label: "Shop", path: "/shop" },
+    { label: "Gallery", path: "/gallery" },
+
+   
   ];
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg shadow-sm px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16 z-50 border-b border-pink-100 dark:border-zinc-800">
-        {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-pink-600 dark:text-pink-400 flex items-center gap-2">
-          🍰
-          <span className="hidden sm:inline">Alka Bakery</span>
-        </Link>
+      <nav className="sticky top-0 z-[999] w-full bg-white/90 backdrop-blur-md border-b border-stone-200 shadow-sm font-sans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            
+            {/* --- LEFT: Logo OR Back Button --- */}
+            <div className="flex items-center">
+              {isHome ? (
+                <Link to="/" className="flex items-center gap-3 group">
+                  <div className="w-10 h-10 bg-orange-700 rounded-full flex items-center justify-center text-white font-serif font-bold text-xl shadow-sm group-hover:bg-orange-800 transition-colors">
+                    B
+                  </div>
+                  <span className="text-2xl font-serif font-bold text-stone-900 tracking-tight group-hover:text-orange-800 transition-colors">
+                    Bakery
+                  </span>
+                </Link>
+              ) : (
+                <button 
+                  onClick={() => navigate(-1)} 
+                  className="flex items-center gap-2 text-stone-500 hover:text-orange-700 transition-colors px-2 py-1 rounded-lg hover:bg-stone-100"
+                >
+                  <ChevronLeft size={20} />
+                  <span className="font-bold text-sm uppercase tracking-wide">Go Back</span>
+                </button>
+              )}
+            </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex space-x-6 items-center text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors flex items-center gap-1"
-            >
-              {link.icon}
-              {link.label}
-            </Link>
-          ))}
-        </div>
+            {/* --- CENTER: Desktop Links --- */}
+            <div className="hidden md:flex items-center space-x-8">
+              {navLinks.map((link) => (
+                <Link 
+                  key={link.label} 
+                  to={link.path} 
+                  className="text-stone-600 hover:text-orange-700 font-medium transition-colors text-sm uppercase tracking-wide"
+                >
+                  {link.label}
+                </Link>
+              ))}
 
-        {/* Auth Buttons / User Info - Desktop */}
-        <div className="hidden md:flex items-center space-x-3">
-          {user ? (
-            <>
-              <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
-                <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
-              </span>
-              <Button variant="outline" size="sm" onClick={logout} className="border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-800">
-                Logout
-              </Button>
-            </>
-          ) : (
-            <AuthModal onAuthSuccess={handleAuthSuccess} /> // Use the modal component directly
-          )}
-        </div>
+               {user?.role === "admin" && (
+                   <Link 
+                  to="/admin" 
+                  className="text-stone-600 hover:text-orange-700 font-medium transition-colors text-sm uppercase tracking-wide"
+                >
+                  ADMIN
+                </Link>
+                )}
+                {user && (
+                  //  <Link to="/orders" className="hover:text-orange-700 transition-colors">Orders</Link>
+                   <Link 
+                  to="/orders" 
+                  className="text-stone-600 hover:text-orange-700 font-medium transition-colors text-sm uppercase tracking-wide"
+                >
+                  ORDERS
+                </Link>
+                )}
+            </div>
 
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden text-zinc-700 dark:text-zinc-300 hover:text-pink-600 dark:hover:text-pink-400"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </nav>
+            {/* --- RIGHT: Actions --- */}
+            <div className="hidden md:flex items-center gap-5">
+              
+              {/* Search Toggle */}
+              <div className={`flex items-center transition-all duration-300 ${isSearchOpen ? 'w-64 bg-stone-100 px-3 rounded-full' : 'w-auto'}`}>
+                <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-stone-500 hover:text-stone-800">
+                  <Search size={20} />
+                </button>
+                {isSearchOpen && (
+                  <input 
+                    type="text" 
+                    placeholder="Search..." 
+                    autoFocus
+                    className="ml-2 bg-transparent border-none outline-none text-sm w-full h-10 text-stone-700 placeholder-stone-400"
+                    onBlur={() => setIsSearchOpen(false)}
+                  />
+                )}
+              </div>
 
-      {/* Mobile Menu Drawer */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden transition-opacity duration-300 ${mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        onClick={() => setMobileMenuOpen(false)} // Close on overlay click
-      />
-      <div
-        className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-zinc-900 shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-      >
-        <div className="p-5 pt-20 flex flex-col space-y-4">
-          {/* Close button inside drawer */}
-          <button
-            className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <X size={24} />
-          </button>
+              {/* Auth & Cart */}
+              <div className="flex items-center gap-3 border-l border-stone-200 pl-5">
+                 <Link to="/cart" className="relative text-stone-600 pr-6 hover:text-orange-700 transition-colors">
+                  <ShoppingBag size={22} />
+                  {/* <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-600 rounded-full"></span> */}
+                </Link>
+                {user ? (
+                  <div className="flex items-center gap-4">
+                     <Link to="/profile" className="flex items-center gap-2 text-stone-600 hover:text-stone-900 font-medium text-sm">
+                        <div className="w-8 h-8 bg-orange-100 text-orange-700 rounded-full flex items-center justify-center">
+                          <User size={16} />
+                        </div>
+                        <span>{user.name || "Profile"}</span>
+                     </Link>
+                     <button onClick={logout} title="Logout" className="text-stone-400 hover:text-red-500">
+                        <LogOut size={18} />
+                     </button>
+                  </div>
+                ) : (
+                  <Link to="/login" className="text-stone-600 hover:text-orange-700 font-bold text-sm">
+                    Login
+                  </Link>
+                )}
 
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="text-zinc-700 dark:text-zinc-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors py-2 flex items-center gap-2"
-              onClick={() => setMobileMenuOpen(false)} // Close menu on link click
-            >
-              {link.icon}
-              {link.label}
-            </Link>
-          ))}
+               
+              </div>
 
-          <hr className="border-pink-100 dark:border-zinc-700 my-4" />
+              {/* Order Now CTA */}
+              {/* <Link 
+                to="/shop" 
+                className="bg-stone-900 hover:bg-orange-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              >
+                Order Now
+              </Link> */}
+            </div>
 
-          {/* Auth Buttons / User Info - Mobile */}
-          <div className="flex flex-col space-y-3 pt-4">
-            {user ? (
-              <>
-                <span onClick={() => navigate('/profile')} className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 px-1">
-                  <User size={16} /> Hi, {user.name?.split(' ')[0] || user.email}
-                </span>
-                <Button variant="outline" onClick={() => { logout(); setMobileMenuOpen(false); }} className="w-full justify-start border-pink-500 text-pink-500 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-800">
-                  Logout
-                </Button>
-              </>
-            ) : (
-              // In mobile, maybe just show the button that opens the modal
-              <Button className="bg-pink-600 hover:bg-pink-700 text-white w-full justify-start" onClick={() => { setAuthModalOpen(true); setMobileMenuOpen(false); }}>Login / Register</Button>
-            )}
+            {/* --- Mobile Toggle --- */}
+            <button onClick={() => setIsMobileOpen(true)} className="md:hidden text-stone-800 p-2">
+              <Menu size={24} />
+            </button>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Conditionally render AuthModal */}
-      {authModalOpen && !user && (
-        <AuthModal onAuthSuccess={handleAuthSuccess} />
-      )}
+      {/* --- Mobile Menu Drawer --- */}
+      <div className={`fixed inset-0 z-[999] md:hidden transition-opacity duration-300 ${isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)} />
+        
+        {/* Drawer */}
+        <div className={`absolute top-0 right-0 w-3/4 max-w-xs h-full bg-white shadow-2xl transition-transform duration-300 ${isMobileOpen ? "translate-x-0" : "translate-x-full"}`}>
+           <div className="p-6 flex flex-col h-full">
+              <div className="flex justify-between items-center mb-8">
+                 <span className="font-serif font-bold text-xl text-stone-900">Menu</span>
+                 <button onClick={() => setIsMobileOpen(false)} className="p-2 hover:bg-stone-100 rounded-full transition-colors">
+                   <X size={24} className="text-stone-500" />
+                 </button>
+              </div>
+
+              <div className="space-y-6 flex-1">
+                 {navLinks.map(link => (
+                   <Link 
+                     key={link.label} 
+                     to={link.path} 
+                     onClick={() => setIsMobileOpen(false)}
+                     className="block text-lg font-medium text-stone-700 hover:text-orange-700"
+                   >
+                     {link.label}
+                   </Link>
+                 ))}
+                 <div className="h-px bg-stone-100 my-4" />
+                 <Link to="/cart" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-3 text-lg font-medium text-stone-700 hover:text-orange-700">
+                    <ShoppingBag size={20} /> Cart
+                 </Link>
+                 
+                 {user ? (
+                   <>
+                     <Link to="/profile" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-3 text-lg font-medium text-stone-700 hover:text-orange-700">
+                        <User size={20} /> Profile
+                     </Link>
+                     <button onClick={() => { logout(); setIsMobileOpen(false); }} className="flex items-center gap-3 text-lg font-medium text-stone-400 hover:text-red-500 w-full text-left">
+                        <LogOut size={20} /> Logout
+                     </button>
+                   </>
+                 ) : (
+                   <Link to="/login" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-3 text-lg font-medium text-stone-700 hover:text-orange-700">
+                     <User size={20} /> Login / Sign Up
+                   </Link>
+                 )}
+              </div>
+
+              <div className="mt-auto pt-6">
+                <Link 
+                  to="/shop" 
+                  onClick={() => setIsMobileOpen(false)}
+                  className="block w-full bg-orange-600 text-white text-center py-3 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
+                >
+                  Order Now
+                </Link>
+              </div>
+           </div>
+        </div>
+      </div>
     </>
   );
 }

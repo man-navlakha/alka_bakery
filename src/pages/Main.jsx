@@ -1,172 +1,224 @@
-import React, { useEffect, useState } from 'react';
-import Navbar from '../components/self/Navbar'; //
-import ContactForm from '../components/self/ContactForm'; //
-import { Button } from '@/components/ui/button'; //
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; //
-import { Link } from 'react-router-dom';
-import { apiFetch } from "../Context/apiFetch"; //
-import Aurora from '@/components/Aurora'; //
-import SplitText from '@/components/SplitText'; //
-import { Loader2 } from 'lucide-react'; // For loading state
-import { motion } from 'framer-motion'; // Assuming framer-motion is installed (it's in package.json)
+import React, { useEffect,useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { apiFetch } from "../Context/apiFetch";
+import Aurora from '@/components/Aurora';
+import SplitText from '@/components/SplitText';
+import ContactForm from '../components/self/ContactForm';
+import { Button } from '@/components/ui/button';
+import Nav from '../components/self/Navbar'
+import { Loader2, ShoppingCart, User, Menu, X, ArrowRight, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuth } from "../Context/AuthProvider";
 
-// Simple Footer Component (Reusing from original)
+// --- Shared Components for Main Page ---
+
+
 const Footer = () => (
-    <footer className="bg-pink-100 dark:bg-zinc-800 text-center p-6 mt-20">
-        <p className="text-sm text-pink-700 dark:text-pink-300">
-            &copy; {new Date().getFullYear()} Alka Bakery. Freshly Baked Happiness. ✨
+  <footer className="bg-stone-900 text-stone-400 py-12 border-t border-stone-800">
+    <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+      <div>
+        <div className="flex items-center gap-2 mb-4 text-white">
+            <div className="w-8 h-8 bg-orange-700 rounded-full flex items-center justify-center font-serif font-bold">B</div>
+            <span className="text-xl font-serif font-bold">Bakery</span>
+        </div>
+        <p className="text-sm leading-relaxed max-w-xs">
+          Freshly baked artisanal breads, cookies, and cakes crafted with passion and premium ingredients daily.
         </p>
-        {/* Add social media links or other info if desired */}
-    </footer>
+      </div>
+      <div>
+        <h4 className="text-white font-serif font-bold mb-4">Quick Links</h4>
+        <ul className="space-y-2 text-sm">
+          <li><Link to="/shop" className="hover:text-orange-500 transition">Full Menu</Link></li>
+          <li><Link to="/tracking" className="hover:text-orange-500 transition">Track Order</Link></li>
+          <li><a href="#contact" className="hover:text-orange-500 transition">Contact Us</a></li>
+        </ul>
+      </div>
+      <div>
+         <h4 className="text-white font-serif font-bold mb-4">Visit Us</h4>
+         <p className="text-sm mb-2">123 Baker Street, Food District</p>
+         <p className="text-sm text-orange-500 font-medium">Open Daily: 8 AM - 9 PM</p>
+      </div>
+    </div>
+    <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-stone-800 text-center text-xs">
+      &copy; {new Date().getFullYear()} Alka Bakery. All rights reserved.
+    </div>
+  </footer>
 );
 
-// --- Redesigned Main Home Page ---
-const Main = () => {
-    const [featuredProducts, setFeaturedProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+const ProductCardMain = ({ product }) => {
+     const displayPrice = useMemo(() => {
+        if (product.unit === "gm") return `₹${product.price_per_100g}/100g`;
+        if (product.unit === "pc") return `₹${product.price_per_pc}`;
+        if (product.unit === "variant") return `From ₹${product.unit_options?.[0]?.price}`;
+        return "";
+      }, [product]);
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="group bg-white rounded-xl overflow-hidden border border-stone-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+    >
+      <div className="relative h-56 overflow-hidden bg-stone-100">
+          <img src={product.product_images?.[0].url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide shadow-sm text-stone-800">
+          {product.categories?.name || 'Featured'}
+        </div>
+      </div>
+      <div className="p-5 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="font-serif font-bold text-lg text-stone-900 leading-tight group-hover:text-orange-700 transition-colors">
+            {product.name}
+          </h3>
+          <div className="font-bold text-orange-800">
+            {displayPrice}
+          </div>
+        </div>
+        <p className="text-sm text-stone-500 line-clamp-2 mb-4 flex-grow">
+          {product.description || 'A delicious artisanal treat baked fresh for you.'}
+        </p>
+        <Link to={`/product/${product.id}`} className="mt-auto">
+          <Button variant="outline" className="w-full border-stone-200 text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all">
+            View Details
+          </Button>
+        </Link>
+      </div>
+    </motion.div>
+  );
+};
 
-    useEffect(() => {
-        const fetchFeatured = async () => {
-            setLoading(true);
-            try {
-                const allProducts = await apiFetch('http://localhost:3000/api/products/');
-                setFeaturedProducts(allProducts.slice(0, 4));
-            } catch (error) {
-                console.error("Failed to fetch featured products:", error);
-                // Optionally set an error state here
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchFeatured();
-    }, []);
+// --- Main Page Component ---
 
-    // Animation variants for Framer Motion
-    const cardVariants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: (i) => ({
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: i * 0.1,
-                duration: 0.5,
-                ease: "easeOut"
-            }
-        })
+export default function Main() {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const allProducts = await apiFetch('http://localhost:3000/api/products/');
+        // Just take first 3 items for a clean featured row
+        setFeaturedProducts(allProducts ? allProducts.slice(0, 3) : []);
+      } catch (error) {
+        console.error("Featured fetch error", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchFeatured();
+  }, []);
 
-    return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-b from-yellow-50 via-white to-pink-50 dark:from-zinc-900 dark:via-zinc-800 dark:to-pink-950">
-           {/* ... (Navbar, Hero, Promise sections remain the same) ... */}
-           <Navbar />
+  return (
+    <div className="flex flex-col min-h-screen bg-stone-50 font-sans text-stone-800 selection:bg-orange-100 selection:text-orange-900">
 
-            {/* Hero Section */}
-            <section className="relative h-[80vh] min-h-[500px] flex items-center justify-center text-center overflow-hidden px-4">
-                {/* ... Aurora and motion.div ... */}
-                 <div className="absolute inset-0 z-0 opacity-40 dark:opacity-60">
-                    <Aurora colorStops={['#FFDAB9', '#FFC0CB', '#FFFACD', '#FFB6C1']} amplitude={0.3} blend={0.8} />
+      <Nav />
+      
+      {/* Hero Section */}
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+        {/* Warm Aurora Background */}
+        <div className="absolute inset-0 z-0 opacity-60">
+            <Aurora colorStops={['#ffedd5', '#fff7ed', '#fed7aa']} amplitude={0.5} blend={0.7} />
+        </div>
+        
+        <div className="relative z-10 container px-4 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+                <div className="inline-block mb-4 px-3 py-1 rounded-full bg-orange-100 border border-orange-200 text-orange-800 text-xs font-bold tracking-widest uppercase">
+                    Est. 2025
                 </div>
-                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="relative z-10 max-w-3xl">
-                    <SplitText text="Baked Fresh, Just For You 🍰" tag="h1" className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-pink-800 dark:text-pink-200 mb-5 leading-tight" splitType="chars" delay={30} duration={0.5} ease="back.out(1.7)" from={{ opacity: 0, scale: 0.5, y: 50 }} to={{ opacity: 1, scale: 1, y: 0 }} />
-                    <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-10 mx-auto max-w-xl">
-                        Experience the warmth and delight of Alka Bakery. Every bite is crafted with passion and the finest ingredients.
-                    </p>
+                <SplitText 
+                    text="Baked with Joy" 
+                    tag="h1" 
+                    className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold text-stone-900 mb-6 tracking-tight" 
+                    splitType="words" 
+                    delay={40} 
+                />
+                <p className="text-lg md:text-xl text-stone-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    Artisanal sourdough, rich cookies, and decadent cakes. <br className="hidden md:block"/>
+                    Crafted daily with premium ingredients and traditional methods.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link to="/shop">
-                        <Button size="lg" className="bg-pink-600 hover:bg-pink-700 text-white dark:bg-pink-500 dark:hover:bg-pink-600 shadow-lg transform hover:scale-105 transition-transform duration-200 px-8 py-3">
-                            Explore Our Menu
+                        <Button size="lg" className="bg-stone-900 text-white hover:bg-orange-700 h-14 px-8 rounded-full text-base shadow-xl shadow-stone-200 transition-all transform hover:-translate-y-1">
+                            Browse Menu
                         </Button>
                     </Link>
-                </motion.div>
-            </section>
-
-             {/* "Our Promise" Section */}
-             <section className="py-16 md:py-24 bg-white dark:bg-zinc-800 px-4 sm:px-6 lg:px-8 shadow-inner">
-                {/* ... content ... */}
-                 <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-zinc-800 dark:text-zinc-100 mb-4">Our Promise</h2>
-                    <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                        At Alka Bakery, we believe in the magic of baking. We use traditional recipes, quality ingredients, and a sprinkle of love in everything we create. From celebratory cakes to everyday treats, freshness and flavor are guaranteed. 💖
-                    </p>
+                    <a href="#featured">
+                        <Button variant="outline" size="lg" className="h-14 px-8 rounded-full text-base border-stone-300 text-stone-700 hover:bg-white hover:text-orange-700">
+                            View Favorites
+                        </Button>
+                    </a>
                 </div>
-            </section>
-
-
-            {/* Featured Products Section */}
-            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
-                <h2 className="text-3xl font-bold text-center text-zinc-800 dark:text-zinc-100 mb-12">
-                    Taste Our Favorites
-                </h2>
-                {loading ? (
-                    <div className="flex justify-center items-center py-10">
-                        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-                    </div>
-                ) : featuredProducts.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-                        {featuredProducts.map((product, index) => (
-                            <motion.div
-                                key={product.id}
-                                custom={index}
-                                initial="hidden"
-                                whileInView="visible"
-                                viewport={{ once: true, amount: 0.3 }}
-                                variants={cardVariants}
-                            >
-                                {/* Using Card component structure */}
-                                <Card className="overflow-hidden h-full flex flex-col hover:shadow-xl transition-shadow duration-300 dark:bg-zinc-800 border border-pink-100 dark:border-zinc-700 rounded-xl">
-                                    <CardHeader className="p-0">
-                                        <img
-                                            src={product.image || 'https://via.placeholder.com/400x300?text=Alka+Bakery'}
-                                            alt={product.name}
-                                            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
-                                        />
-                                    </CardHeader>
-                                    <CardContent className="p-4 flex flex-col flex-grow">
-                                         {/* Display Category */}
-                                        <p className="text-xs text-pink-500 dark:text-pink-400 font-medium mb-1 uppercase tracking-wide">{product.categories?.name || 'Featured'}</p>
-                                        <CardTitle className="text-md font-semibold mb-1 text-zinc-900 dark:text-zinc-100 line-clamp-2">
-                                            {product.name}
-                                        </CardTitle>
-                                        <p className="text-pink-600 dark:text-pink-400 font-bold my-2 text-lg">
-                                            ₹{product.price}
-                                             {/* Display unit */}
-                                             {product.units?.name && (
-                                                <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">/{product.units.name}</span>
-                                              )}
-                                        </p>
-                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 line-clamp-2 flex-grow min-h-[30px]">
-                                            {product.description || 'A delicious treat from Alka Bakery.'}
-                                        </p>
-                                        <Link to={`/product/${product.id}`} className="mt-auto block"> {/* Link to product page */}
-                                            <Button variant="outline" className="w-full border-pink-500 text-pink-500 hover:bg-pink-50 hover:text-pink-600 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-zinc-700 dark:hover:text-pink-300">
-                                                View Details
-                                            </Button>
-                                        </Link>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-zinc-500 dark:text-zinc-400">No featured products available right now. Check back soon!</p>
-                )}
-                 {/* ... (See Full Menu link remains the same) ... */}
-                 <div className="text-center mt-16">
-                   <Link to="/shop">
-                       <Button variant="link" size="lg" className="text-pink-600 dark:text-pink-400 text-lg hover:underline">
-                           See Full Menu &rarr;
-                       </Button>
-                   </Link>
-                </div>
-            </section>
-
-             {/* ... (Contact and Footer remain the same) ... */}
-             <section id="contact" className="pt-16 md:pt-24">
-                 <ContactForm />
-            </section>
-            <Footer />
+            </motion.div>
         </div>
-    );
+      </section>
+
+      {/* "Our Promise" Section */}
+      <section className="py-20 bg-white border-y border-stone-100">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+              <Star className="w-8 h-8 text-orange-500 mx-auto mb-6 fill-current opacity-80" />
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 mb-6">The Bakery Promise</h2>
+              <p className="text-lg text-stone-600 leading-relaxed">
+                  We believe that real baking requires real patience. Our sourdough is fermented for 48 hours, 
+                  our butter is pure, and we never use preservatives. Every bite you take is a testament to 
+                  the craft we've perfected over years of dedication.
+              </p>
+          </div>
+      </section>
+
+      {/* Featured Products */}
+      <section id="featured" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex justify-between items-end mb-12">
+              <div>
+                  <h2 className="text-3xl md:text-4xl font-serif font-bold text-stone-900">Daily Favorites</h2>
+                  <p className="text-stone-500 mt-2">Fresh from the oven this morning.</p>
+              </div>
+              <Link to="/shop" className="hidden md:flex items-center text-orange-700 font-medium hover:text-stone-900 transition">
+                  View Full Menu <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+          </div>
+
+          {loading ? (
+              <div className="flex justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+              </div>
+          ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {featuredProducts.length > 0 ? (
+                      featuredProducts.map((p) => <ProductCardMain key={p.id} product={p} />)
+                  ) : (
+                      <div className="col-span-3 text-center py-10 bg-stone-100 rounded-xl border border-dashed border-stone-300 text-stone-500">
+                          Items are currently sold out. Check back tomorrow!
+                      </div>
+                  )}
+              </div>
+          )}
+
+          <div className="mt-12 text-center md:hidden">
+              <Link to="/shop">
+                  <Button variant="outline" className="w-full border-stone-300">View All Products</Button>
+              </Link>
+          </div>
+      </section>
+
+      {/* Contact / CTA Section */}
+      <section id="contact" className="py-24 bg-orange-50 border-t border-orange-100">
+          <div className="max-w-3xl mx-auto px-6">
+              <div className="text-center mb-12">
+                  <h2 className="text-3xl font-serif font-bold text-stone-900 mb-4">Get in Touch</h2>
+                  <p className="text-stone-600">
+                      Need a custom cake for a special occasion? Or just want to say hi?
+                      <br />Drop us a message below.
+                  </p>
+              </div>
+                 <ContactForm />
+          </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
 }
-
-
-export default Main;

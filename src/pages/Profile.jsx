@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../Context/AuthProvider";
 import { User, Mail, Calendar, LogOut, Save } from "lucide-react";
 import toast from "react-hot-toast";
+import Navbar from "../components/self/Navbar";
 
 export default function Profile() {
   const { user, logout, API_URL } = useAuth();
@@ -48,6 +49,8 @@ export default function Profile() {
   if (!user) return <div className="text-center mt-20">Loading profile...</div>;
 
   return (
+    <>
+      <Navbar />
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         
@@ -57,10 +60,10 @@ export default function Profile() {
           <div className="px-4 sm:px-6 -mt-12 flex justify-between items-end">
             <div className="flex items-end">
                 {/* Avatar Placeholder */}
-              <div className="h-24 w-24 rounded-full ring-4 ring-white bg-amber-200 flex items-center justify-center text-4xl">
+              <div className="h-24 w-24 rounded-full ring-4 mb-6 ring-white bg-amber-200 flex items-center justify-center text-4xl">
                 🥯
               </div>
-              <div className="ml-4 mb-3">
+              <div className="ml-4 mb-5">
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                 <p className="text-sm text-gray-500">{user.role === 'admin' ? 'Admin' : 'Customer'}</p>
               </div>
@@ -160,5 +163,7 @@ export default function Profile() {
         </div>
       </div>
     </div>
+    
+    </>
   );
 }

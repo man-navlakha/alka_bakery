@@ -4,7 +4,6 @@ import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
 import Main from "./pages/Main";
 import ShopPage from "./pages/ShopPage";
-import TrackingPage from "./components/self/TrackingPage";
 import AdminRoute from "./AdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductManagement from "./pages/admin/AdminProductManagement";
@@ -24,7 +23,6 @@ export default function App() {
 
         {/* User Routes */}
         <Route path="/profile" element={<Profile />} />
-        <Route path="/tracking" element={<TrackingPage />} />
 
         {/* Admin Routes */}
         <Route element={<AdminRoute />}>
