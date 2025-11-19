@@ -6,9 +6,8 @@ import { AuthProvider } from "./Context/AuthProvider.jsx";
 // import { CartProvider } from './Context/CartContext.jsx';
 
 createRoot(document.getElementById('root')).render(
+// ✅ Router must be the parent
   <AuthProvider>
-  {/* <CartProvider> */}
     <App />
-  {/* </CartProvider>, */}
-  </AuthProvider>,
+  </AuthProvider>
 )

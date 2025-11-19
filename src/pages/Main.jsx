@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from "../Context/apiFetch"; //
 import Aurora from '@/components/Aurora'; //
 import SplitText from '@/components/SplitText'; //
+import { Loader2 } from 'lucide-react'; // For loading state
 import { motion } from 'framer-motion'; // Assuming framer-motion is installed (it's in package.json)
 
 // Simple Footer Component (Reusing from original)
@@ -28,7 +29,7 @@ const Main = () => {
         const fetchFeatured = async () => {
             setLoading(true);
             try {
-                const allProducts = await apiFetch("http://localhost:3000/api/products");
+                const allProducts = await apiFetch('http://localhost:3000/api/products/');
                 setFeaturedProducts(allProducts.slice(0, 4));
             } catch (error) {
                 console.error("Failed to fetch featured products:", error);

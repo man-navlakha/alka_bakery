@@ -1,84 +1,83 @@
-import React, { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../Context/AuthProvider";
 
-export default function Register() {
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+export default function Signup() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { register } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("http://localhost:3000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registration failed");
-
-      alert("Registration successful! You can now login.");
-      navigate("/login");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    setIsSubmitting(true);
+    await register(name, email, password);
+    setIsSubmitting(false);
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-pink-100 to-yellow-100">
-      <Card className="w-[380px] shadow-xl border-pink-200">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center text-pink-600">Create Account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label>Name</Label>
-              <Input name="name" value={form.name} onChange={handleChange} required />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input type="email" name="email" value={form.email} onChange={handleChange} required />
-            </div>
-            <div>
-              <Label>Password</Label>
-              <Input type="password" name="password" value={form.password} onChange={handleChange} required />
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-amber-50">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-amber-100">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-amber-800">Join Alka Bakery 🍰</h1>
+          <p className="text-gray-500 mt-2">Create an account to order delicious treats.</p>
+        </div>
 
-            {error && <p className="text-red-600 text-sm">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+              placeholder="John Doe"
+            />
+          </div>
 
-            <Button
-              disabled={loading}
-              className="w-full bg-pink-600 hover:bg-pink-700 text-white"
-              type="submit"
-            >
-              {loading ? "Registering..." : "Register"}
-            </Button>
-            <p className="text-center text-sm mt-2">
-              Already have an account?{" "}
-              <span
-                className="text-pink-600 cursor-pointer hover:underline"
-                onClick={() => navigate("/login")}
-              >
-                Login
-              </span>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+              placeholder="Min 6 characters"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-70"
+          >
+            {isSubmitting ? "Creating Account..." : "Sign Up"}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-gray-600">
+          Already have an account?{" "}
+          <Link to="/login" className="text-amber-600 hover:text-amber-800 font-semibold">
+            Sign in
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,148 +1,448 @@
 import React, { useEffect, useState } from "react";
-import AddProductForm from "../../components/self/AddProductForm"; // Adjust path
-import { Button } from "@/components/ui/button"; // Adjust path
-import { apiFetch } from "../../Context/apiFetch"; // Use apiFetch for consistency
-import { toast, Toaster } from "sonner"; // For notifications
-import { Edit, Trash2, PlusCircle, Loader2 } from 'lucide-react'; // Icons
 
-export default function AdminProductManagement() {
+/**
+ * AdminProducts.jsx
+ *
+ * Usage: place this behind an admin-only route. Tailwind CSS must be configured.
+ *
+ * Expects backend endpoints:
+ *  GET    /api/products
+ *  GET    /api/products/:id
+ *  POST   /api/products
+ *  PUT    /api/products/:id
+ *  DELETE /api/products/:id
+ *
+ * The create/update payload shape matches the productController in your server:
+ * {
+ *   id, name, category, unit, price_per_100g?, price_per_pc?, description?,
+ *   unitOptions?: [{ label, grams, price, position? }],
+ *   images?: [{ url, alt?, position? }]
+ * }
+ */
+
+export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [modalProduct, setModalProduct] = useState(null); // null = closed, {} = add, object = edit
+  const [error, setError] = useState(null);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      // Use apiFetch (GET is default, no options needed for public route)
-      const data = await apiFetch("http://localhost:3000/api/products");
-      setProducts(data);
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-      setError("Could not load products. Please try again.");
-      toast.error("Failed to load products.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [editing, setEditing] = useState(null); // product object being edited (null => create)
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Basic flash
+  const [note, setNote] = useState(null);
 
   useEffect(() => {
     fetchProducts();
-  }, []); // Fetch on component mount
+  }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-
+  async function fetchProducts() {
+    setLoading(true);
+    setError(null);
     try {
-      // apiFetch automatically includes Auth token for DELETE
-      await apiFetch(`http://localhost:3000/api/products/${id}`, {
-        method: "DELETE",
-      });
-      setProducts(products.filter((p) => p.id !== id));
-      toast.success("Product deleted successfully!");
+      const res = await fetch("/api/products");
+      if (!res.ok) throw new Error(`Failed to load: ${res.statusText}`);
+      const data = await res.json();
+      setProducts(data);
     } catch (err) {
-      console.error("Failed to delete product:", err);
-      toast.error(err.message || "Failed to delete product.");
-      setError(err.message || "Failed to delete product.");
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
-  // Called when AddProductForm successfully adds or updates
-  const handleProductAddedOrUpdated = (newOrUpdatedProduct) => {
-    const exists = products.find((p) => p.id === newOrUpdatedProduct.id);
-    if (exists) {
-      // Update existing product in the list
-      setProducts(
-        products.map((p) => (p.id === newOrUpdatedProduct.id ? newOrUpdatedProduct : p))
-      );
-    } else {
-      // Add new product to the beginning of the list
-      setProducts([newOrUpdatedProduct, ...products]);
+  function openCreate() {
+    setEditing(null);
+    setShowForm(true);
+  }
+
+  function openEdit(product) {
+    setEditing(normalizeProductForForm(product));
+    setShowForm(true);
+  }
+
+  function normalizeProductForForm(product) {
+    // ensures unitOptions and images are arrays in the form-friendly shape
+    return {
+      ...product,
+      // server uses product_unit_options and product_images; allow both shapes
+      unitOptions: product.product_unit_options || product.unitOptions || [],
+      images: (product.product_images || product.images || []).map((img) =>
+        typeof img === "string" ? { url: img } : img
+      ),
+      // unify price keys used in UI
+      price_per_100g: product.price_per_100g ?? product.pricePer100g ?? null,
+      price_per_pc: product.price_per_pc ?? product.pricePerPc ?? null,
+    };
+  }
+
+  async function handleDelete(productId) {
+    if (!confirm("Delete this product? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      setProducts((p) => p.filter((x) => x.id !== productId));
+      setNote("Deleted product.");
+      setTimeout(() => setNote(null), 3000);
+    } catch (err) {
+      alert("Failed to delete: " + err.message);
     }
-    setModalProduct(null); // Close the modal
-    // Toast notification is handled within AddProductForm on success
-  };
+  }
 
   return (
-    <div className="relative">
-      <Toaster richColors position="top-center" />
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manage Products</h1>
-        <Button
-          onClick={() => setModalProduct({})} // Open modal in "add new" mode
-          className="bg-pink-600 hover:bg-pink-700 text-white"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Product
-        </Button>
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Admin — Products</h1>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openCreate}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md shadow"
+          >
+            + New Product
+          </button>
+          <button
+            onClick={fetchProducts}
+            className="bg-white border px-3 py-2 rounded-md text-sm"
+            title="Reload"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {loading && (
-        <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-          <p className="ml-2 text-zinc-600">Loading products...</p>
-        </div>
-      )}
-      {error && <p className="text-center py-10 text-red-600">{error}</p>}
+      {note && <div className="mb-4 text-sm text-green-700 bg-green-100 p-2 rounded">{note}</div>}
 
-      {!loading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.length > 0 ? products.map((product) => (
-            <div
-              key={product.id}
-              className="border rounded-xl p-4 shadow bg-white flex flex-col justify-between hover:shadow-lg transition-shadow"
-            >
-              <div>
-                <img
-                  src={product.image || 'https://via.placeholder.com/400x300?text=No+Image'} // Placeholder
-                  alt={product.name}
-                  className="w-full h-40 object-cover rounded-lg mb-3"
-                />
-                <h3 className="text-md font-semibold text-gray-800">{product.name}</h3>
-                <p className="text-sm text-gray-500">{product.categories?.name || 'Uncategorized'}</p>
-                <p className="text-pink-600 font-bold mt-1">₹{product.price}</p>
-                {/* Display unit if available */}
-                {product.units?.name && (
-                  <span className="text-xs text-gray-400 ml-1">/{product.units.name}</span>
-                )}
-                <p className="text-gray-600 text-xs mt-2 line-clamp-3">{product.description}</p>
-              </div>
-
-              {/* Edit & Delete Buttons */}
-              <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setModalProduct(product)} // Open modal in "edit" mode
-                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                  aria-label={`Edit ${product.name}`}
-                >
-                  <Edit size={16} />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(product.id)}
-                  className="text-red-600 border-red-600 hover:bg-red-50"
-                  aria-label={`Delete ${product.name}`}
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </div>
-            </div>
-          )) : <p className="col-span-full text-center text-gray-500">No products found. Add one!</p>}
+      {loading ? (
+        <div className="text-gray-500">Loading products...</div>
+      ) : error ? (
+        <div className="text-red-600">Error: {error}</div>
+      ) : (
+        <div className="bg-white rounded-lg shadow divide-y">
+          {products.length === 0 ? (
+            <div className="p-4 text-gray-500">No products yet.</div>
+          ) : (
+            products.map((p) => (
+              <ProductRow
+                key={p.id}
+                product={p}
+                onEdit={() => openEdit(p)}
+                onDelete={() => handleDelete(p.id)}
+              />
+            ))
+          )}
         </div>
       )}
 
-      {/* Add/Edit Product Modal */}
-      {modalProduct !== null && (
-        <AddProductForm
-          // Pass null if adding, or the product object if editing
-          product={Object.keys(modalProduct).length === 0 ? null : modalProduct}
-          onProductAdded={handleProductAddedOrUpdated}
-          onCancel={() => setModalProduct(null)} // Function to close the modal
+      {showForm && (
+        <ProductForm
+          initial={editing}
+          onClose={() => setShowForm(false)}
+          onSaved={(savedProduct, action) => {
+            // update local list optimistically
+            setProducts((prev) => {
+              if (action === "created") {
+                return [savedProduct, ...prev];
+              }
+              return prev.map((x) => (x.id === savedProduct.id ? savedProduct : x));
+            });
+            setShowForm(false);
+            setNote(action === "created" ? "Product created." : "Product updated.");
+            setTimeout(() => setNote(null), 3000);
+          }}
         />
       )}
+
+      <div className="mt-8 text-sm text-gray-500">
+        Tip: Protect these routes with admin auth. In production do not expose a service role key to the client.
+      </div>
+    </div>
+  );
+}
+
+/* -------- Product Row (list item) -------- */
+function ProductRow({ product, onEdit, onDelete }) {
+  const primaryImage = (product.product_images && product.product_images[0]?.url) || product.image || (product.product_images && product.product_images[0]) || "";
+  const priceInfo =
+    product.unit === "gm"
+      ? `₹${product.price_per_100g ?? product.pricePer100g}/100g`
+      : product.unit === "pc"
+      ? `₹${product.price_per_pc ?? product.pricePerPc}/pc`
+      : product.product_unit_options?.length
+      ? `From ₹${product.product_unit_options[0].price}`
+      : "";
+
+  return (
+    <div className="p-4 flex items-center gap-4">
+      <img src={primaryImage || "https://picsum.photos/seed/placeholder/120/80"} alt={product.name} className="w-28 h-20 object-cover rounded" />
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-semibold">{product.name}</div>
+            <div className="text-xs text-gray-500">{product.category} • {product.unit}</div>
+          </div>
+          <div className="text-sm text-gray-700">{priceInfo}</div>
+        </div>
+        <div className="text-sm text-gray-600 mt-2">{product.description}</div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <button onClick={onEdit} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm border">Edit</button>
+        <button onClick={onDelete} className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm border">Delete</button>
+      </div>
+    </div>
+  );
+}
+
+/* -------- Product Form (create / edit) -------- */
+function ProductForm({ initial = null, onClose, onSaved }) {
+  // form state
+  const isEdit = Boolean(initial && initial.id);
+  const [form, setForm] = useState(() =>
+    initial
+      ? {
+          id: initial.id || "",
+          name: initial.name || "",
+          category: initial.category || "Cookies",
+          unit: initial.unit || "gm", // gm|pc|variant
+          price_per_100g: initial.price_per_100g ?? initial.pricePer100g ?? "",
+          price_per_pc: initial.price_per_pc ?? initial.pricePerPc ?? "",
+          unitOptions: initial.unitOptions ?? initial.product_unit_options ?? [],
+          images: initial.images ?? initial.product_images ?? [],
+          description: initial.description ?? "",
+        }
+      : {
+          id: "",
+          name: "",
+          category: "Cookies",
+          unit: "gm",
+          price_per_100g: "",
+          price_per_pc: "",
+          unitOptions: [],
+          images: [],
+          description: "",
+        }
+  );
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
+
+  // helpers
+  function updateField(k, v) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function addUnitOption() {
+    setForm((f) => ({ ...f, unitOptions: [...(f.unitOptions || []), { label: "", grams: "", price: "" }] }));
+  }
+  function updateUnitOption(idx, key, value) {
+    setForm((f) => {
+      const arr = [...(f.unitOptions || [])];
+      arr[idx] = { ...arr[idx], [key]: value };
+      return { ...f, unitOptions: arr };
+    });
+  }
+  function removeUnitOption(idx) {
+    setForm((f) => ({ ...f, unitOptions: f.unitOptions.filter((_, i) => i !== idx) }));
+  }
+
+  function addImage() {
+    setForm((f) => ({ ...f, images: [...(f.images || []), { url: "", alt: "" }] }));
+  }
+  function updateImage(idx, key, value) {
+    setForm((f) => {
+      const arr = [...(f.images || [])];
+      arr[idx] = { ...arr[idx], [key]: value };
+      return { ...f, images: arr };
+    });
+  }
+  function removeImage(idx) {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+  }
+
+  function validate() {
+    setFormError(null);
+    if (!form.id || !form.name) {
+      setFormError("Please provide both an ID and a name for the product.");
+      return false;
+    }
+    if (!["gm", "pc", "variant"].includes(form.unit)) {
+      setFormError("Unit must be one of: gm, pc, variant.");
+      return false;
+    }
+    if (form.unit === "gm" && !form.price_per_100g) {
+      setFormError("Please set price_per_100g for gm products.");
+      return false;
+    }
+    if (form.unit === "pc" && !form.price_per_pc) {
+      setFormError("Please set price_per_pc for pc products.");
+      return false;
+    }
+    if (form.unit === "variant" && (!form.unitOptions || form.unitOptions.length === 0)) {
+      setFormError("Add at least one size option for variant products.");
+      return false;
+    }
+    return true;
+  }
+
+  async function submit(e) {
+    e?.preventDefault?.();
+    if (!validate()) return;
+
+    setSaving(true);
+    setFormError(null);
+
+    // prepare payload matching server controller
+    const payload = {
+      id: form.id,
+      name: form.name,
+      category: form.category,
+      unit: form.unit,
+      price_per_100g: form.unit === "gm" ? Number(form.price_per_100g) : null,
+      price_per_pc: form.unit === "pc" ? Number(form.price_per_pc) : null,
+      description: form.description || null,
+      unitOptions:
+        form.unit === "variant"
+          ? (form.unitOptions || []).map((o, i) => ({ label: o.label, grams: o.grams ? Number(o.grams) : null, price: Number(o.price), position: i }))
+          : [],
+      images: (form.images || []).filter((i) => i.url).map((i, p) => ({ url: i.url, alt: i.alt || null, position: p })),
+    };
+
+    try {
+      const method = isEdit ? "PUT" : "POST";
+      const url = isEdit ? `/api/products/${encodeURIComponent(form.id)}` : "/api/products";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Server error");
+      }
+
+      const saved = await res.json();
+      onSaved && onSaved(saved, isEdit ? "updated" : "created");
+    } catch (err) {
+      setFormError("Save failed: " + (err.message || err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-6">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <form onSubmit={submit} className="relative bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 z-10 overflow-auto max-h-[90vh]">
+        <div className="flex items-start justify-between">
+          <h2 className="text-lg font-semibold">{isEdit ? "Edit Product" : "Create Product"}</h2>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="text-sm px-3 py-1 rounded border">Close</button>
+          </div>
+        </div>
+
+        {formError && <div className="mt-3 text-sm text-red-700 bg-red-50 p-2 rounded">{formError}</div>}
+
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium">ID (unique)</label>
+            <input
+              value={form.id}
+              onChange={(e) => updateField("id", e.target.value)}
+              disabled={isEdit}
+              className="mt-1 block w-full border rounded px-3 py-2"
+              placeholder="e.g. cookie-003"
+            />
+            <p className="text-xs text-gray-500 mt-1">IDs are used in API URLs and should be unique.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Name</label>
+            <input value={form.name} onChange={(e) => updateField("name", e.target.value)} className="mt-1 block w-full border rounded px-3 py-2" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Category</label>
+            <select value={form.category} onChange={(e) => updateField("category", e.target.value)} className="mt-1 block w-full border rounded px-3 py-2">
+              <option>Cookies</option>
+              <option>Cakes</option>
+              <option>Gift Box</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Unit</label>
+            <select value={form.unit} onChange={(e) => updateField("unit", e.target.value)} className="mt-1 block w-full border rounded px-3 py-2">
+              <option value="gm">gm (price per 100g)</option>
+              <option value="pc">pc (per piece)</option>
+              <option value="variant">variant (sizes/options — e.g. cakes)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {form.unit === "gm" && (
+            <div>
+              <label className="block text-sm font-medium">Price per 100 g (₹)</label>
+              <input type="number" value={form.price_per_100g} onChange={(e) => updateField("price_per_100g", e.target.value)} className="mt-1 block w-44 border rounded px-3 py-2" />
+            </div>
+          )}
+
+          {form.unit === "pc" && (
+            <div>
+              <label className="block text-sm font-medium">Price per piece (₹)</label>
+              <input type="number" value={form.price_per_pc} onChange={(e) => updateField("price_per_pc", e.target.value)} className="mt-1 block w-44 border rounded px-3 py-2" />
+            </div>
+          )}
+
+          {form.unit === "variant" && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Unit Options (sizes)</label>
+                <button type="button" onClick={addUnitOption} className="text-sm px-2 py-1 bg-green-50 text-green-700 rounded border">+ Add size</button>
+              </div>
+              <div className="mt-2 space-y-2">
+                {(form.unitOptions || []).map((opt, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input placeholder="Label (e.g. 500 g)" value={opt.label} onChange={(e) => updateUnitOption(i, "label", e.target.value)} className="border rounded px-2 py-1 w-36" />
+                    <input placeholder="grams" type="number" value={opt.grams} onChange={(e) => updateUnitOption(i, "grams", e.target.value)} className="border rounded px-2 py-1 w-24" />
+                    <input placeholder="price (₹)" type="number" value={opt.price} onChange={(e) => updateUnitOption(i, "price", e.target.value)} className="border rounded px-2 py-1 w-28" />
+                    <button type="button" onClick={() => removeUnitOption(i)} className="text-sm px-2 py-1 bg-red-50 text-red-700 rounded border">Remove</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium">Images</label>
+          <div className="mt-2 space-y-2">
+            {(form.images || []).map((img, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <input placeholder="Image URL" value={img.url} onChange={(e) => updateImage(i, "url", e.target.value)} className="border rounded px-2 py-1 flex-1" />
+                <input placeholder="alt text (optional)" value={img.alt || ""} onChange={(e) => updateImage(i, "alt", e.target.value)} className="border rounded px-2 py-1 w-48" />
+                <button type="button" onClick={() => removeImage(i)} className="text-sm px-2 py-1 bg-red-50 text-red-700 rounded border">Remove</button>
+              </div>
+            ))}
+            <div>
+              <button type="button" onClick={addImage} className="text-sm px-3 py-1 bg-blue-50 text-blue-700 rounded border">+ Add image</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium">Description</label>
+          <textarea value={form.description} onChange={(e) => updateField("description", e.target.value)} className="mt-1 block w-full border rounded px-3 py-2 h-24" />
+        </div>
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded border">Cancel</button>
+          <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-indigo-600 text-white">
+            {saving ? "Saving..." : isEdit ? "Save changes" : "Create product"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
