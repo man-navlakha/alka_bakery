@@ -12,9 +12,7 @@ const AdminLayout = () => (
       <ul className="space-y-2 flex-grow">
         <li><a href="/admin/dashboard" className="block py-1 px-2 rounded hover:bg-gray-700 hover:text-pink-300 transition-colors">Dashboard</a></li>
         <li><a href="/admin/products" className="block py-1 px-2 rounded hover:bg-gray-700 hover:text-pink-300 transition-colors">Products</a></li>
-        <li><a href="/admin/categories" className="block py-1 px-2 rounded hover:bg-gray-700 hover:text-pink-300 transition-colors">Categories</a></li>
-        <li><a href="/admin/units" className="block py-1 px-2 rounded hover:bg-gray-700 hover:text-pink-300 transition-colors">Units</a></li>
-        <li><a href="/admin/orders" className="block py-1 px-2 rounded hover:bg-gray-700 hover:text-pink-300 transition-colors">Orders</a></li>
+        <li><a href="/admin/reviews" className="block py-1 px-2 rounded hover:bg-gray-700 hover:text-pink-300 transition-colors">Reviews</a></li>
       </ul>
       {/* Optional: Add Logout button or user info at the bottom */}
       <div className="mt-auto">
@@ -39,12 +37,6 @@ export default function AdminRoute() {
         <p className="ml-2 text-zinc-600">Checking access...</p>
       </div>
     );
-  }
-
-  // Check if user exists and has admin role
-  if (!user || user.role !== 'admin') {
-    // Redirect non-admins to the home page or login page
-    return <Navigate to="/" replace />;
   }
 
   // If user is admin, render the AdminLayout which contains the Outlet for nested routes

@@ -1,29 +1,19 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom"; // Remove BrowserRouter from imports
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
 import Main from "./pages/Main";
-// Remove AdminProducts import if combining
-// import AdminProducts from "./pages/AdminProducts";
 import ShopPage from "./pages/ShopPage";
-// import CartPage from "./components/self/CartPage";
-// import CheckoutPage from "./components/self/CheckoutPage";
-// import ThankYouPage from "./components/self/ThankYouPage";
 import TrackingPage from "./components/self/TrackingPage";
-
-// Import Admin components
-import AdminRoute from "./AdminRoute"; // Import the protector component
-import AdminDashboard from "./pages/admin/AdminDashboard"; // New Dashboard
-import AdminProductManagement from "./pages/admin/AdminProductManagement"; // Renamed/Refactored
-import AdminOrderManagement from "./pages/admin/AdminOrderManagement"; // Renamed/Refactored
+import AdminRoute from "./AdminRoute";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProductManagement from "./pages/admin/AdminProductManagement";
 import ProductPage from "./components/self/shop/ProductPage";
-// import Cart from "./components/self/Cart";
-import AdminCategoryManagement from "./pages/admin/AdminCategoryManagement";
-import AdminUnitManagement from "./pages/admin/AdminUnitManagement";
+import AdminReviews from "./pages/admin/AdminReviews";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    // <BrowserRouter>  <-- REMOVE THIS WRAPPER
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
@@ -31,29 +21,19 @@ export default function App() {
         <Route path="/" element={<Main />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/shop" element={<ShopPage />} />
-        {/* <Route path="/cart" element={<Cart />} /> */}
-        {/* <Route path="/checkout" element={<CheckoutPage />} /> */}
-        {/* <Route path="/thankyou" element={<ThankYouPage />} /> */}
 
-        {/* Logged In User Routes (Example - Profile & Tracking) */}
-        {/* You might want a similar 'ProtectedRoute' for these */}
+        {/* User Routes */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/tracking" element={<TrackingPage />} />
 
-        {/* Admin Routes - Protected */}
-        <Route element={<AdminRoute />}> {/* Wrap admin routes */}
+        {/* Admin Routes */}
+        <Route element={<AdminRoute />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProductManagement />} />
-          <Route path="/admin/orders" element={<AdminOrderManagement />} />
-          <Route path="/admin/categories" element={<AdminCategoryManagement />} />
-          <Route path="/admin/units" element={<AdminUnitManagement />} />
-           {/* Redirect /admin to dashboard */}
+          <Route path="/admin/reviews" element={<AdminReviews />} />
           <Route path="/admin" element={<AdminDashboard />} />
         </Route>
-
-        {/* Optional: Add a 404 Not Found Route */}
-        {/* <Route path="*" element={<NotFoundPage />} /> */}
       </Routes>
-    </BrowserRouter>
+    // </BrowserRouter> <-- REMOVE THIS WRAPPER
   );
 }

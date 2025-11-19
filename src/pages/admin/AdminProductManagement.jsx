@@ -40,7 +40,7 @@ export default function AdminProducts() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/products");
+      const res = await fetch("http://localhost:3000/api/products");
       if (!res.ok) throw new Error(`Failed to load: ${res.statusText}`);
       const data = await res.json();
       setProducts(data);
@@ -79,7 +79,7 @@ export default function AdminProducts() {
   async function handleDelete(productId) {
     if (!confirm("Delete this product? This action cannot be undone.")) return;
     try {
-      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, { method: "DELETE" });
+      const res = await fetch(`http://localhost:3000/api/products/${encodeURIComponent(productId)}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await res.text());
       setProducts((p) => p.filter((x) => x.id !== productId));
       setNote("Deleted product.");
@@ -308,7 +308,7 @@ function ProductForm({ initial = null, onClose, onSaved }) {
 
     try {
       const method = isEdit ? "PUT" : "POST";
-      const url = isEdit ? `/api/products/${encodeURIComponent(form.id)}` : "/api/products";
+      const url = isEdit ? `http://localhost:3000/api/products/${encodeURIComponent(form.id)}` : "http://localhost:3000/api/products";
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
