@@ -4,6 +4,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 
 const AuthContext = createContext();
+const CART_ID_KEY = "alka_cart_id";
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -13,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const API_URL = "http://localhost:3000/api";
+const API_URL = import.meta?.env?.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:3000/api";
 
   useEffect(() => {
     checkUserLoggedIn();
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           setUser(data.user);
         } else {
+          // Invalid token? Clear it.
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
         }
@@ -49,15 +51,16 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Login failed");
+      if (!res.ok) return { success: false, message: data.message || "Login failed" };
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
       setUser(data.user);
+      
       toast.success("Welcome back!");
-      navigate("/");
+      return { success: true, user: data.user };
     } catch (error) {
-      toast.error(error.message);
+      return { success: false, message: error.message };
     }
   };
 
@@ -84,25 +87,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+const logout = async () => {
     try {
         await fetch(`${API_URL}/auth/logout`, { method: 'POST' });
     } catch(e) {
         console.error("Logout error", e);
     }
+    
+    // 1. Clear Auth Tokens
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    
+    // 2. Clear Cart Session (Crucial for not inheriting old cart)
+    localStorage.removeItem(CART_ID_KEY); 
+    
     setUser(null);
     toast.success("Logged out successfully");
-    navigate("/login");
+    
+    // 3. Reload to reset all Context states cleanly
+    window.location.href = "/login"; 
   };
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading, API_URL }}>
-             <Toaster
-        position="top-center"
-        reverseOrder={false}
-      />
+      <Toaster position="top-center" reverseOrder={false} />
       {!loading && children}
     </AuthContext.Provider>
   );

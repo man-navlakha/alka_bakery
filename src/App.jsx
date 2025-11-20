@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductManagement from "./pages/admin/AdminProductManagement";
 import ProductPage from "./components/self/shop/ProductPage";
 import AdminReviews from "./pages/admin/AdminReviews";
+import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 // import Toaster from "react-hot-toast";
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<AdminProductManagement />} />
               <Route path="/admin/reviews" element={<AdminReviews />} />
+              <Route path="/admin/coupon" element={<AdminCouponsPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
             </Route>
           </Routes>
