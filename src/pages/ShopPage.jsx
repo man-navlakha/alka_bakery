@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Reviews, { ReviewList, ReviewSummary, StarRatingDisplay } from "../components/Reviews";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "../Context/CartContext";
 import { useCartDrawer } from "../Context/CartDrawerContext";
 
@@ -51,11 +51,11 @@ export default function ShopWithApi() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
+  const [searchParams] = useSearchParams();
+const [query, setQuery] = useState(searchParams.get("search") || "");
   // UI State
-  const [query, setQuery] = useState("");
-const [isCartOpen, setIsCartOpen] = useState(false); // you can actually remove this now
-const { itemCount, addProduct } = useCart();
-const { openCart } = useCartDrawer();
+  const { itemCount, addProduct } = useCart();
+  const { openCart } = useCartDrawer();
 
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [page, setPage] = useState(1);
@@ -133,11 +133,11 @@ const { openCart } = useCartDrawer();
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Cart Logic
-function addToCart(product, opts = {}) {
-  openCart();           // open global drawer
-  setQuickViewProduct(null);
-  addProduct(product, opts);
-}
+  function addToCart(product, opts = {}) {
+    openCart();           // open global drawer
+    setQuickViewProduct(null);
+    addProduct(product, opts);
+  }
 
   const ratingCss = `
     .rating { display: inline-block; position: relative; font-size: 1rem; line-height: 1; color: #d6d3d1; }
@@ -153,18 +153,18 @@ function addToCart(product, opts = {}) {
       {/* --- Sticky Control Bar (Mobile Optimized) --- */}
       <nav className="sticky top-20 z-30 bg-stone-50/90 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-          
+
           {/* Filter Trigger (Mobile) & Brand */}
           <div className="flex items-center gap-2">
-            <button 
-              className="p-2.5 bg-white border border-stone-200 rounded-full text-stone-600 hover:text-orange-600 hover:border-orange-300 active:scale-95 transition-all shadow-sm" 
+            <button
+              className="p-2.5 bg-white border border-stone-200 rounded-full text-stone-600 hover:text-orange-600 hover:border-orange-300 active:scale-95 transition-all shadow-sm"
               onClick={() => setShowFiltersMobile(true)}
               aria-label="Open Filters"
             >
               <IconFilter />
             </button>
             {/* Hide Brand on small mobile if search is active, or keep it small */}
-         
+
           </div>
 
           {/* Search Bar */}
@@ -173,25 +173,25 @@ function addToCart(product, opts = {}) {
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <IconSearch />
               </div>
-              <input 
-                value={query} 
-                onChange={(e) => setQuery(e.target.value)} 
-                placeholder="Search cravings..." 
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-50 rounded-full text-sm transition-all shadow-sm" 
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search cravings..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-50 rounded-full text-sm transition-all shadow-sm"
               />
             </div>
           </div>
 
           {/* Cart Trigger */}
-         <button onClick={openCart} className="relative group p-2.5 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-200 rounded-full transition-all shadow-sm active:scale-95">
-  <IconCart count={itemCount} />
-</button>
+          <button onClick={openCart} className="relative group p-2.5 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-200 rounded-full transition-all shadow-sm active:scale-95">
+            <IconCart count={itemCount} />
+          </button>
 
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 grid md:grid-cols-[240px_1fr] gap-8 items-start">
-        
+
         {/* --- Desktop Sidebar (Hidden on Mobile) --- */}
         <aside className="hidden md:block sticky top-24 space-y-8">
           {/* <FilterPanel 
@@ -219,8 +219,8 @@ function addToCart(product, opts = {}) {
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
-                <div className="text-stone-400 text-sm animate-pulse">Baking fresh data...</div>
+              <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+              <div className="text-stone-400 text-sm animate-pulse">Baking fresh data...</div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl border border-stone-100 shadow-sm px-4">
@@ -238,7 +238,7 @@ function addToCart(product, opts = {}) {
               {totalPages > 1 && (
                 <div className="mt-12 flex justify-center gap-2 flex-wrap">
                   {Array.from({ length: totalPages }).map((_, i) => (
-                    <button key={i} onClick={() => { setPage(i + 1); window.scrollTo({top:0, behavior:'smooth'}) }} className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all shadow-sm ${page === i + 1 ? 'bg-stone-800 text-white scale-110' : 'bg-white border border-stone-200 hover:bg-orange-50 text-stone-600'}`}>{i + 1}</button>
+                    <button key={i} onClick={() => { setPage(i + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all shadow-sm ${page === i + 1 ? 'bg-stone-800 text-white scale-110' : 'bg-white border border-stone-200 hover:bg-orange-50 text-stone-600'}`}>{i + 1}</button>
                   ))}
                 </div>
               )}
@@ -248,27 +248,23 @@ function addToCart(product, opts = {}) {
       </main>
 
       {/* --- Modals & Drawers --- */}
-      
+
       {/* Mobile Filter Drawer (Slide Over) */}
-      <MobileFilterDrawer 
-        isOpen={showFiltersMobile} 
+      <MobileFilterDrawer
+        isOpen={showFiltersMobile}
         onClose={() => setShowFiltersMobile(false)}
       >
-         <FilterPanel 
-            categories={categories} 
-            selectedCategory={selectedCategory} 
-            setSelectedCategory={setSelectedCategory} 
-            priceRange={priceRange} 
-            setPriceRange={setPriceRange} 
-            setPage={setPage}
-          />
+        <FilterPanel
+          categories={categories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
+          setPage={setPage}
+        />
       </MobileFilterDrawer>
 
-      <CartSidebar
-  isOpen={isCartOpen}
-  onClose={() => setIsCartOpen(false)}
-  products={products}
-/>
+
 
 
       {quickViewProduct && (
@@ -284,65 +280,65 @@ function addToCart(product, opts = {}) {
 
 // Reusable Filter Content
 function FilterPanel({ categories, selectedCategory, setSelectedCategory, priceRange, setPriceRange, setPage, isMobile }) {
-    return (
-        <div className={`${isMobile ? 'pb-20' : ''}`}>
-          <div className="mb-8">
-            <h3 className="font-serif font-bold text-xl mb-4 text-stone-900 flex items-center gap-2">
-                Categories
-                {selectedCategory !== "All" && <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-sans">1 Active</span>}
-            </h3>
-            <div className="space-y-2">
-              {categories.map(cat => (
-                <label key={cat} className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-stone-100 transition-colors">
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${selectedCategory === cat ? 'border-orange-600' : 'border-stone-300 group-hover:border-orange-400'}`}>
-                    {selectedCategory === cat && <div className="w-2.5 h-2.5 bg-orange-600 rounded-full" />}
-                  </div>
-                  <input type="radio" name="category" className="hidden" checked={selectedCategory === cat} onChange={() => { setSelectedCategory(cat); setPage(1); }} />
-                  <span className={`text-sm font-medium ${selectedCategory === cat ? 'text-stone-900' : 'text-stone-500 group-hover:text-stone-700'}`}>{cat}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <div className="flex justify-between mb-3 items-end">
-              <h3 className="font-serif font-bold text-lg text-stone-900">Max Price</h3>
-              <span className="text-sm font-bold bg-orange-50 text-orange-700 px-2 py-1 rounded">₹{priceRange}</span>
-            </div>
-            <input type="range" min="0" max="2000" step="50" value={priceRange} onChange={(e) => setPriceRange(Number(e.target.value))} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600" />
-            <div className="flex justify-between text-xs text-stone-400 mt-2 font-medium"><span>₹0</span><span>₹2000+</span></div>
-          </div>
-
-          <div className="p-5 bg-gradient-to-br from-orange-50 to-white rounded-2xl border border-orange-100 shadow-sm">
-            <h4 className="font-bold text-orange-900 text-sm mb-2 flex items-center gap-2">
-                <span>⚡</span> Fresh Promise
-            </h4>
-            <p className="text-xs text-stone-600 leading-relaxed">All items baked fresh this morning. Order before 2 PM for same-day delivery in your area.</p>
-          </div>
+  return (
+    <div className={`${isMobile ? 'pb-20' : ''}`}>
+      <div className="mb-8">
+        <h3 className="font-serif font-bold text-xl mb-4 text-stone-900 flex items-center gap-2">
+          Categories
+          {selectedCategory !== "All" && <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-sans">1 Active</span>}
+        </h3>
+        <div className="space-y-2">
+          {categories.map(cat => (
+            <label key={cat} className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-stone-100 transition-colors">
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${selectedCategory === cat ? 'border-orange-600' : 'border-stone-300 group-hover:border-orange-400'}`}>
+                {selectedCategory === cat && <div className="w-2.5 h-2.5 bg-orange-600 rounded-full" />}
+              </div>
+              <input type="radio" name="category" className="hidden" checked={selectedCategory === cat} onChange={() => { setSelectedCategory(cat); setPage(1); }} />
+              <span className={`text-sm font-medium ${selectedCategory === cat ? 'text-stone-900' : 'text-stone-500 group-hover:text-stone-700'}`}>{cat}</span>
+            </label>
+          ))}
         </div>
-    )
+      </div>
+
+      <div className="mb-8">
+        <div className="flex justify-between mb-3 items-end">
+          <h3 className="font-serif font-bold text-lg text-stone-900">Max Price</h3>
+          <span className="text-sm font-bold bg-orange-50 text-orange-700 px-2 py-1 rounded">₹{priceRange}</span>
+        </div>
+        <input type="range" min="0" max="2000" step="50" value={priceRange} onChange={(e) => setPriceRange(Number(e.target.value))} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600" />
+        <div className="flex justify-between text-xs text-stone-400 mt-2 font-medium"><span>₹0</span><span>₹2000+</span></div>
+      </div>
+
+      <div className="p-5 bg-gradient-to-br from-orange-50 to-white rounded-2xl border border-orange-100 shadow-sm">
+        <h4 className="font-bold text-orange-900 text-sm mb-2 flex items-center gap-2">
+          <span>⚡</span> Fresh Promise
+        </h4>
+        <p className="text-xs text-stone-600 leading-relaxed">All items baked fresh this morning. Order before 2 PM for same-day delivery in your area.</p>
+      </div>
+    </div>
+  )
 }
 
 function MobileFilterDrawer({ isOpen, onClose, children }) {
-    return (
-        <div className={`fixed inset-0 z-50  ${isOpen ? "" : "pointer-events-none"}`}>
-            {/* Backdrop */}
-            <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose} />
-            {/* Drawer */}
-            <div className={`absolute left-0 top-20 bottom-0 w-[85%] max-w-xs bg-white shadow-2xl transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
-                <div className="p-5 border-b flex justify-between items-center bg-stone-50">
-                    <h2 className="font-serif text-xl font-bold text-stone-800">Filters</h2>
-                    <button onClick={onClose} className="p-2 bg-white rounded-full shadow-sm border border-stone-100 active:scale-90 transition-transform"><IconClose /></button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-1">
-                    {children}
-                </div>
-                <div className="p-4 border-t bg-stone-50">
-                    <button onClick={onClose} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform">Show Results</button>
-                </div>
-            </div>
+  return (
+    <div className={`fixed inset-0 z-50  ${isOpen ? "" : "pointer-events-none"}`}>
+      {/* Backdrop */}
+      <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose} />
+      {/* Drawer */}
+      <div className={`absolute left-0 top-20 bottom-0 w-[85%] max-w-xs bg-white shadow-2xl transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
+        <div className="p-5 border-b flex justify-between items-center bg-stone-50">
+          <h2 className="font-serif text-xl font-bold text-stone-800">Filters</h2>
+          <button onClick={onClose} className="p-2 bg-white rounded-full shadow-sm border border-stone-100 active:scale-90 transition-transform"><IconClose /></button>
         </div>
-    )
+        <div className="p-6 overflow-y-auto flex-1">
+          {children}
+        </div>
+        <div className="p-4 border-t bg-stone-50">
+          <button onClick={onClose} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform">Show Results</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ProductCard({ product, onAdd, onQuickView }) {
@@ -358,11 +354,11 @@ function ProductCard({ product, onAdd, onQuickView }) {
     <article className="group bg-white rounded-2xl overflow-hidden border border-stone-100 shadow-sm hover:shadow-xl hover:border-orange-100 transition-all duration-300 flex flex-col h-full">
       <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
         <img src={product.images?.[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-        
+
         {/* Quick View Trigger (Mobile safe) */}
-        <button 
-            onClick={(e) => { e.stopPropagation(); onQuickView(); }} 
-            className="absolute bottom-3 right-3 bg-white/90 backdrop-blur text-stone-800 px-3 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-orange-600 hover:text-white transition-colors flex items-center gap-1.5 z-10"
+        <button
+          onClick={(e) => { e.stopPropagation(); onQuickView(); }}
+          className="absolute bottom-3 right-3 bg-white/90 backdrop-blur text-stone-800 px-3 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-orange-600 hover:text-white transition-colors flex items-center gap-1.5 z-10"
         >
           <IconEye /> <span className="hidden sm:inline">Quick View</span>
         </button>
@@ -431,24 +427,24 @@ function QuickViewModal({ product, onClose, onAdd }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-stone-900/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl w-full max-w-4xl sm:max-h-[90vh] max-h-[95vh] overflow-hidden flex flex-col md:flex-row relative animate-fade-in" onClick={e => e.stopPropagation()}>
-        
+
         <button onClick={onClose} className="absolute top-4 right-4 z-20 p-2 bg-white/80 backdrop-blur rounded-full hover:bg-white shadow-md transition-all text-stone-600 hover:text-red-500"><IconClose /></button>
 
         {/* Left: Gallery (Scrollable on Mobile) */}
         <div className="w-full md:w-1/2 bg-stone-100 flex flex-col">
-            <div className="relative h-64 md:h-full w-full bg-white">
-                <img src={activeImg} alt={product.name} className="w-full h-full object-cover" />
+          <div className="relative h-64 md:h-full w-full bg-white">
+            <img src={activeImg} alt={product.name} className="w-full h-full object-cover" />
+          </div>
+          {/* Thumbnails - Horizontal scroll on mobile */}
+          {product.images?.length > 1 && (
+            <div className="flex gap-2 p-4 overflow-x-auto md:grid md:grid-cols-4 shrink-0 bg-stone-100">
+              {product.images.map((img, i) => (
+                <button key={i} onClick={() => setActiveImg(img)} className={`w-16 h-16 md:w-full md:h-16 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${activeImg === img ? 'border-orange-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                  <img src={img} className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
-            {/* Thumbnails - Horizontal scroll on mobile */}
-            {product.images?.length > 1 && (
-                <div className="flex gap-2 p-4 overflow-x-auto md:grid md:grid-cols-4 shrink-0 bg-stone-100">
-                    {product.images.map((img, i) => (
-                        <button key={i} onClick={() => setActiveImg(img)} className={`w-16 h-16 md:w-full md:h-16 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${activeImg === img ? 'border-orange-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                            <img src={img} className="w-full h-full object-cover" />
-                        </button>
-                    ))}
-                </div>
-            )}
+          )}
         </div>
 
         {/* Right: Details (Scrollable) */}
@@ -485,11 +481,11 @@ function QuickViewModal({ product, onClose, onAdd }) {
             )}
 
             <div className="bg-orange-50/50 rounded-xl p-4 border border-orange-100 flex flex-col sm:flex-row justify-between items-center gap-2">
-                <span className="text-stone-600 text-sm font-medium">{pricing.calculationText}</span>
-                <div className="text-right">
-                    <span className="text-xs text-stone-400 block">Total Price</span>
-                    <span className="text-2xl font-serif font-bold text-orange-700">₹{pricing.finalPrice}</span>
-                </div>
+              <span className="text-stone-600 text-sm font-medium">{pricing.calculationText}</span>
+              <div className="text-right">
+                <span className="text-xs text-stone-400 block">Total Price</span>
+                <span className="text-2xl font-serif font-bold text-orange-700">₹{pricing.finalPrice}</span>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -510,7 +506,22 @@ function QuickViewModal({ product, onClose, onAdd }) {
 }
 
 function CartSidebar({ isOpen, onClose, products }) {
-  const { items, grandTotal, itemCount, updateItemQuantity, removeItem } = useCart();
+  const {
+    items,
+    grandTotal,
+    itemCount,
+    updateItemQuantity,
+    removeItem,
+    // Optional: if you’ve wired these up in CartContext already
+    giftItems,
+    couponCode,
+    couponDiscount,
+    autoCouponCode,
+    autoDiscount,
+    freeGiftApplied,
+  } = useCart();
+
+
 
   function getProductMeta(it) {
     const p = products.find((x) => x.id === it.product_id);
@@ -530,15 +541,13 @@ function CartSidebar({ isOpen, onClose, products }) {
   return (
     <div className={`fixed inset-0 z-[60] ${isOpen ? "" : "pointer-events-none"}`}>
       <div
-        className={`absolute inset-0 bg-stone-900/50 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? "opacity-100" : "opacity-0"
-        }`}
+        className={`absolute inset-0 bg-stone-900/50 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"
+          }`}
         onClick={onClose}
       />
       <div
-        className={`absolute right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-md bg-white shadow-2xl transition-transform duration-300 flex flex-col ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`absolute right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-md bg-white shadow-2xl transition-transform duration-300 flex flex-col ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="p-5 border-b flex justify-between items-center bg-stone-50">
           <h2 className="font-serif text-xl font-bold text-stone-800 flex items-center gap-2">

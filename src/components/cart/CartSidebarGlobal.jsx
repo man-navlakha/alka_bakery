@@ -1,7 +1,8 @@
 import React from "react";
 import { useCart } from "../../Context/CartContext";
 import { useCartDrawer } from "../../Context/CartDrawerContext";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react"; //
+import CartTotalsCard from "./CartTotalsCard";
 
 const IconCart = ({ count }) => (
   <div className="relative">
@@ -18,7 +19,8 @@ const IconCart = ({ count }) => (
 
 export default function CartSidebarGlobal({ products = [] }) {
   const { isOpen, closeCart } = useCartDrawer();
-  const { items, grandTotal, itemCount, updateItemQuantity, removeItem } = useCart();
+  // 1. Get the loading state from context
+  const { items, grandTotal, itemCount, updateItemQuantity, removeItem, loading } = useCart();
 
   function getProductMeta(it) {
     const p = products.find((x) => x.id === it.product_id);
@@ -36,7 +38,7 @@ export default function CartSidebarGlobal({ products = [] }) {
   }
 
   return (
-    <div className={`fixed inset-0 z-[60] ${isOpen ? "" : "pointer-events-none"}`}>
+    <div className={`fixed inset-0 mt-20 z-[60] ${isOpen ? "" : "pointer-events-none"}`}>
       <div
         className={`absolute inset-0 bg-stone-900/50 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "opacity-0"
@@ -48,6 +50,15 @@ export default function CartSidebarGlobal({ products = [] }) {
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
+        {/* 2. Loading Overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+            <div className="bg-white p-3 rounded-full shadow-xl border border-stone-100">
+              <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
+            </div>
+          </div>
+        )}
+
         <div className="p-5 border-b flex justify-between items-center bg-stone-50">
           <h2 className="font-serif text-xl font-bold text-stone-800 flex items-center gap-2">
             Your Cart{" "}
@@ -64,7 +75,7 @@ export default function CartSidebarGlobal({ products = [] }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {items.length === 0 && (
+          {items.length === 0 && !loading && (
             <div className="h-full flex flex-col items-center justify-center text-stone-400 space-y-4 opacity-60">
               <IconCart count={0} />
               <p>Your basket is empty.</p>
@@ -137,8 +148,10 @@ export default function CartSidebarGlobal({ products = [] }) {
             );
           })}
         </div>
-
-        <div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+  <CartTotalsCard />
+</div>
+        {/* <div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="flex justify-between text-lg font-bold mb-4 text-stone-900">
             <span>Subtotal</span>
             <span>₹{grandTotal}</span>
@@ -149,7 +162,7 @@ export default function CartSidebarGlobal({ products = [] }) {
           >
             Proceed to Checkout
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

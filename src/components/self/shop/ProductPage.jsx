@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom"; // Assuming React Router is used
 import Reviews, { StarRatingDisplay } from "../../Reviews";
+import { useCart } from "../../../Context/CartContext";
+import { useCartDrawer } from "../../../Context/CartDrawerContext";
 
 // --- Icons (Reused for consistency) ---
 const IconCart = ({ count }) => (
@@ -29,7 +31,9 @@ const sampleProducts = [
 ];
 
 export default function ProductPage({ addToCartGlobal }) {
-  const { id } = useParams(); // Get ID from URL
+  const { id } = useParams();
+  const { addProduct } = useCart(); // Get cart action
+  const { openCart } = useCartDrawer(); // Get drawer action
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -104,18 +108,22 @@ export default function ProductPage({ addToCartGlobal }) {
   }, [product, grams, selectedVariant, qty]);
 
   // 3. Handler
+ // 3. Handler
   const handleAddToCart = () => {
-    // Build object structure expected by ShopPage/Cart
+    // Build object structure expected by CartContext
     const cartOpts = { qty };
-    if(product.unit === 'gm') cartOpts.grams = grams;
-    if(product.unit === 'variant') cartOpts.option = selectedVariant;
-
-    // Execute the prop function if it exists, otherwise log
-    if(addToCartGlobal) {
-      addToCartGlobal(product, cartOpts);
-    } else {
-      console.log("Added to cart:", product.name, cartOpts);
+    
+    // Add specific options based on unit type
+    if (product.unit === 'gm') {
+        cartOpts.grams = grams;
     }
+    if (product.unit === 'variant') {
+        cartOpts.option = selectedVariant;
+    }
+
+    // Call the Context API directly
+    addProduct(product, cartOpts);
+    openCart(); // Open the cart drawer so user sees the item added
 
     // Visual feedback
     setIsAdded(true);
