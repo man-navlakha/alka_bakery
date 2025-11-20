@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Search, ShoppingBag, User, ChevronLeft, LogOut } from "lucide-react";
+import { Menu, X, Search, User, ChevronLeft, LogOut, ShoppingBag } from "lucide-react";
+import CartButton from "../cart/CartButton";
 import { useAuth } from "../../Context/AuthProvider";
 
 export default function Navbar() {
@@ -103,10 +104,8 @@ export default function Navbar() {
 
               {/* Auth & Cart */}
               <div className="flex items-center gap-3 border-l border-stone-200 pl-5">
-                 <Link to="/cart" className="relative text-stone-600 pr-6 hover:text-orange-700 transition-colors">
-                  <ShoppingBag size={22} />
-                  {/* <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-600 rounded-full"></span> */}
-                </Link>
+                <CartButton className="pr-6" />
+
                 {user ? (
                   <div className="flex items-center gap-4">
                      <Link to="/profile" className="flex items-center gap-2 text-stone-600 hover:text-stone-900 font-medium text-sm">

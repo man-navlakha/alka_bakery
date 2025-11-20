@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom"; // Assuming React Router is used
 import Reviews, { StarRatingDisplay } from "../../Reviews";
-import Navbar from "../Navbar";
 
 // --- Icons (Reused for consistency) ---
 const IconCart = ({ count }) => (
@@ -128,8 +127,6 @@ export default function ProductPage({ addToCartGlobal }) {
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans text-stone-800 pb-20">
-      {/* Navbar Placeholder (Or import your Header) */}
-     <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         
@@ -137,7 +134,8 @@ export default function ProductPage({ addToCartGlobal }) {
         <div className="grid md:grid-cols-2 gap-12 mb-16">
           
           {/* Left: Gallery */}
-          <div className="space-y-4 sticky top-24 h-fit">
+          <div className="space-y-4 ">
+          <div className="space-y-4 sticky top-24 h-fit z-60">
             <div className="aspect-square bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100">
               <img src={activeImg} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
             </div>
@@ -155,6 +153,7 @@ export default function ProductPage({ addToCartGlobal }) {
               </div>
             )}
           </div>
+          </div>
 
           {/* Right: Details & Actions */}
           <div className="flex flex-col h-full">
@@ -167,7 +166,7 @@ export default function ProductPage({ addToCartGlobal }) {
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-4 leading-tight">{product.name}</h1>
             
             <div className="flex items-center gap-4 mb-6">
-               <StarRatingDisplay productId={product.id} size="lg" showValue />
+               <StarRatingDisplay productId={product.id} size="lg" className="z-1" showValue />
                <span className="text-stone-300">|</span>
                <span className="text-stone-500 text-sm">Baked fresh daily</span>
             </div>

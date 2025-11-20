@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../Context/AuthProvider";
 import { User, Mail, Calendar, LogOut, Save } from "lucide-react";
 import toast from "react-hot-toast";
-import Navbar from "../components/self/Navbar";
 
 export default function Profile() {
   const { user, logout, API_URL } = useAuth();
@@ -50,7 +49,6 @@ export default function Profile() {
 
   return (
     <>
-      <Navbar />
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         

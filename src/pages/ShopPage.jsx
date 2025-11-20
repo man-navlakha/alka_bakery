@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Reviews, { ReviewList, ReviewSummary, StarRatingDisplay } from "../components/Reviews";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/self/Navbar";
+import { useCart } from "../Context/CartContext";
+import { useCartDrawer } from "../Context/CartDrawerContext";
+
 
 const API_BASE = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 
@@ -51,8 +53,10 @@ export default function ShopWithApi() {
 
   // UI State
   const [query, setQuery] = useState("");
-  const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+const [isCartOpen, setIsCartOpen] = useState(false); // you can actually remove this now
+const { itemCount, addProduct } = useCart();
+const { openCart } = useCartDrawer();
+
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 9;
@@ -129,47 +133,11 @@ export default function ShopWithApi() {
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Cart Logic
-  function addToCart(product, opts = {}) {
-    const qty = opts.qty || 1;
-    setIsCartOpen(true);
-    setQuickViewProduct(null);
-
-    let key = "";
-    let newItem = {};
-
-    if (product.unit === "gm") {
-      const grams = opts.grams || 100;
-      key = `${product.id}-gm-${grams}`;
-      newItem = { key, id: product.id, name: product.name, unit: "gm", qty, grams, pricePer100g: product.price_per_100g };
-    }
-    else if (product.unit === "pc") {
-      key = `${product.id}-pc`;
-      newItem = { key, id: product.id, name: product.name, unit: "pc", qty };
-    }
-    else if (product.unit === "variant") {
-      const option = opts.option || product.unit_options?.[0];
-      key = `${product.id}-var-${option?.label}`;
-      newItem = { key, id: product.id, name: product.name, unit: "variant", qty, option };
-    }
-
-    setCart((c) => {
-      const existing = c.find((it) => it.key === key);
-      if (existing) return c.map((it) => it.key === key ? { ...it, qty: it.qty + qty } : it);
-      return [...c, newItem];
-    });
-  }
-
-  function computeCartItemPrice(it) {
-    const p = products.find((x) => x.id === it.id) || sampleProducts.find((x) => x.id === it.id);
-    if (!p) return { perUnit: 0, total: 0 };
-    let perUnit = 0;
-    if (it.unit === "gm") perUnit = Math.round((it.grams / 100) * (p.price_per_100g || 0));
-    else if (it.unit === "pc") perUnit = p.price_per_pc || 0;
-    else if (it.unit === "variant") perUnit = it.option?.price || 0;
-    return { perUnit, total: perUnit * it.qty };
-  }
-
-  const cartTotal = cart.reduce((s, it) => s + computeCartItemPrice(it).total, 0);
+function addToCart(product, opts = {}) {
+  openCart();           // open global drawer
+  setQuickViewProduct(null);
+  addProduct(product, opts);
+}
 
   const ratingCss = `
     .rating { display: inline-block; position: relative; font-size: 1rem; line-height: 1; color: #d6d3d1; }
@@ -181,7 +149,6 @@ export default function ShopWithApi() {
     <div className="min-h-screen bg-stone-50 font-sans text-stone-800">
       <style>{ratingCss}</style>
 
-      <Navbar />
 
       {/* --- Sticky Control Bar (Mobile Optimized) --- */}
       <nav className="sticky top-20 z-30 bg-stone-50/90 backdrop-blur-md border-b border-stone-200">
@@ -216,9 +183,10 @@ export default function ShopWithApi() {
           </div>
 
           {/* Cart Trigger */}
-          <button onClick={() => setIsCartOpen(true)} className="relative group p-2.5 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-200 rounded-full transition-all shadow-sm active:scale-95">
-            <IconCart count={cart.length} />
-          </button>
+         <button onClick={openCart} className="relative group p-2.5 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-200 rounded-full transition-all shadow-sm active:scale-95">
+  <IconCart count={itemCount} />
+</button>
+
         </div>
       </nav>
 
@@ -296,7 +264,12 @@ export default function ShopWithApi() {
           />
       </MobileFilterDrawer>
 
-      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} cart={cart} total={cartTotal} setCart={setCart} computePrice={computeCartItemPrice} />
+      <CartSidebar
+  isOpen={isCartOpen}
+  onClose={() => setIsCartOpen(false)}
+  products={products}
+/>
+
 
       {quickViewProduct && (
         <QuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} onAdd={addToCart} />
@@ -405,7 +378,7 @@ function ProductCard({ product, onAdd, onQuickView }) {
           <div className="font-bold text-orange-700 text-sm whitespace-nowrap bg-orange-50 px-2 py-1 rounded">{displayPrice}</div>
         </div>
         <div className="mb-3 text-xs text-stone-400 font-medium uppercase tracking-wide">{product.category}</div>
-        <StarRatingDisplay productId={product.id} size="sm" showValue />
+        <div className="mb-6"><StarRatingDisplay productId={product.id} size="md" showValue /></div>
 
         <div className="mt-auto pt-4 border-t border-stone-50 flex gap-3">
           <button onClick={() => nav(`/product/${product.id}`)} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-bold hover:bg-stone-50 transition-colors text-stone-600 active:scale-95">
@@ -536,66 +509,136 @@ function QuickViewModal({ product, onClose, onAdd }) {
   );
 }
 
-function CartSidebar({ isOpen, onClose, cart, total, setCart, computePrice }) {
+function CartSidebar({ isOpen, onClose, products }) {
+  const { items, grandTotal, itemCount, updateItemQuantity, removeItem } = useCart();
+
+  function getProductMeta(it) {
+    const p = products.find((x) => x.id === it.product_id);
+    const name = p?.name || it.product_id;
+    let label = "";
+    if (it.unit === "gm") label = `${it.grams || ""}g pack`;
+    else if (it.unit === "variant") label = it.variant_label || "Variant";
+    else if (it.unit === "pc") label = "Single Item";
+
+    let emoji = "🥐";
+    if (p?.category === "Cookies") emoji = "🍪";
+    else if (p?.category === "Cakes") emoji = "🍰";
+
+    return { name, label, emoji };
+  }
+
   return (
     <div className={`fixed inset-0 z-[60] ${isOpen ? "" : "pointer-events-none"}`}>
-      <div className={`absolute inset-0 bg-stone-900/50 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose} />
-      <div className={`absolute right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-md bg-white shadow-2xl transition-transform duration-300 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div
+        className={`absolute inset-0 bg-stone-900/50 backdrop-blur-sm transition-opacity duration-300 ${
+          isOpen ? "opacity-100" : "opacity-0"
+        }`}
+        onClick={onClose}
+      />
+      <div
+        className={`absolute right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-md bg-white shadow-2xl transition-transform duration-300 flex flex-col ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         <div className="p-5 border-b flex justify-between items-center bg-stone-50">
           <h2 className="font-serif text-xl font-bold text-stone-800 flex items-center gap-2">
-            Your Cart <span className="bg-orange-600 text-white text-xs py-0.5 px-2 rounded-full font-sans">{cart.length}</span>
+            Your Cart{" "}
+            <span className="bg-orange-600 text-white text-xs py-0.5 px-2 rounded-full font-sans">
+              {itemCount}
+            </span>
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-stone-200 rounded-full transition-colors"><IconClose /></button>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-stone-200 rounded-full transition-colors"
+          >
+            <IconClose />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {cart.length === 0 && (
+          {items.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-stone-400 space-y-4 opacity-60">
               <IconCart count={0} />
               <p>Your basket is empty.</p>
-              <button onClick={onClose} className="text-orange-600 font-bold text-sm hover:underline">Start Shopping</button>
+              <button
+                onClick={onClose}
+                className="text-orange-600 font-bold text-sm hover:underline"
+              >
+                Start Shopping
+              </button>
             </div>
           )}
-          {cart.map(it => {
-            const { total: itemTotal, perUnit } = computePrice(it);
+
+          {items.map((it) => {
+            const { name, label, emoji } = getProductMeta(it);
+            const itemTotal = Number(it.line_total || 0);
+
             return (
-              <div key={it.key} className="flex gap-4 group border border-stone-100 p-3 rounded-xl shadow-sm bg-white">
+              <div
+                key={it.id}
+                className="flex gap-4 group border border-stone-100 p-3 rounded-xl shadow-sm bg-white"
+              >
                 <div className="w-16 h-16 bg-stone-100 rounded-lg flex items-center justify-center text-2xl shrink-0">
-                  {it.unit === 'gm' ? '🍪' : it.unit === 'variant' ? '🍰' : '🥐'}
+                  {emoji}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-2">
                     <div className="truncate">
-                      <div className="font-bold text-stone-800 truncate">{it.name}</div>
+                      <div className="font-bold text-stone-800 truncate">{name}</div>
                       <div className="text-xs text-stone-500 mt-0.5">
-                        {it.unit === 'gm' && <span>{it.grams}g pack</span>}
-                        {it.unit === 'variant' && <span>{it.option?.label}</span>}
-                        {it.unit === 'pc' && <span>Single Item</span>}
+                        {label}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-bold text-stone-900">₹{itemTotal}</div>
+                      <div className="font-bold text-stone-900">
+                        ₹{itemTotal}
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 flex justify-between items-center">
                     <div className="flex items-center bg-stone-50 border rounded-lg h-8">
-                      <button onClick={() => setCart(c => c.map(i => i.key === it.key ? { ...i, qty: Math.max(1, i.qty - 1) } : i))} className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-l-lg font-bold">-</button>
-                      <span className="w-8 text-center text-xs font-bold">{it.qty}</span>
-                      <button onClick={() => setCart(c => c.map(i => i.key === it.key ? { ...i, qty: i.qty + 1 } : i))} className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-r-lg font-bold">+</button>
+                      <button
+                        onClick={() =>
+                          updateItemQuantity(it.id, (it.quantity || 1) - 1)
+                        }
+                        className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-l-lg font-bold"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center text-xs font-bold">
+                        {it.quantity}
+                      </span>
+                      <button
+                        onClick={() =>
+                          updateItemQuantity(it.id, (it.quantity || 1) + 1)
+                        }
+                        className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-r-lg font-bold"
+                      >
+                        +
+                      </button>
                     </div>
-                    <button onClick={() => setCart(c => c.filter(x => x.key !== it.key))} className="text-xs text-red-400 hover:text-red-600 font-medium p-1">Remove</button>
+                    <button
+                      onClick={() => removeItem(it.id)}
+                      className="text-xs text-red-400 hover:text-red-600 font-medium p-1"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
 
         <div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="flex justify-between text-lg font-bold mb-4 text-stone-900">
-            <span>Subtotal</span><span>₹{total}</span>
+            <span>Subtotal</span>
+            <span>₹{grandTotal}</span>
           </div>
-          <button className="w-full py-3.5 bg-stone-900 text-white rounded-xl font-bold hover:bg-orange-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={cart.length === 0}>
+          <button
+            className="w-full py-3.5 bg-stone-900 text-white rounded-xl font-bold hover:bg-orange-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={items.length === 0}
+          >
             Proceed to Checkout
           </button>
         </div>

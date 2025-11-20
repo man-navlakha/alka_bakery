@@ -5,7 +5,6 @@ import Aurora from '@/components/Aurora';
 import SplitText from '@/components/SplitText';
 import ContactForm from '../components/self/ContactForm';
 import { Button } from '@/components/ui/button';
-import Nav from '../components/self/Navbar'
 import { Loader2, ShoppingCart, User, Menu, X, ArrowRight, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from "../Context/AuthProvider";
@@ -110,8 +109,6 @@ export default function Main() {
 
   return (
     <div className="flex flex-col min-h-screen bg-stone-50 font-sans text-stone-800 selection:bg-orange-100 selection:text-orange-900">
-
-      <Nav />
       
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">

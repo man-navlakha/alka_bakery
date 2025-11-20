@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import toast, { Toaster } from 'react-hot-toast';
 
 /**
  * Reviews.jsx
@@ -20,7 +21,14 @@ import React, { useEffect, useMemo, useState } from "react";
  *
  *  - If your backend is not at same origin, set VITE_API_URL in .env and uncomment API_BASE logic.
  */
-
+const Icons = {
+  StarFilled: () => <svg className="w-full h-full text-amber-400 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg>,
+  StarEmpty: () => <svg className="w-full h-full text-stone-200 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg>,
+  Upload: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
+  CheckBadge: () => <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>,
+  ThumbsUp: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>,
+  Close: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+};
 const API_BASE = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 
 export default function Reviews({ productId }) {
@@ -100,14 +108,14 @@ export function StarRatingDisplay({
   const sizeClass = sizeMap[size] || sizeMap.md;
 
   return (
-    <div className={`inline-flex items-center gap-2 ${className}`}>
+    <div className={`inline-flex items-center gap-2 -z-3 ${className}`}>
       <div
         className={`relative inline-block leading-none ${sizeClass}`}
         role="img"
         aria-label={`Rating: ${r} out of 5`}
         title={`${r} out of 5`}
       >
-        <div className="text-stone-300 select-none">
+        <div className="text-stone-300 select-none ">
           <span aria-hidden>★★★★★</span>
         </div>
         <div
@@ -344,7 +352,7 @@ export function ReviewForm({ productId, onSaved }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg border shadow-sm">
+    <form onSubmit={handleSubmit} className="bg-white rounded-lg mr-1 p-3  border shadow-sm">
       <h3 className="font-semibold mb-2">Write a review</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -369,8 +377,9 @@ export function ReviewForm({ productId, onSaved }) {
 
       <div className="mt-3">
         <label className="text-xs font-medium">Photos (optional)</label>
-        <div className="mt-2 flex gap-2 items-center">
+        <div className="mt-2 flex flex-col gap-2 items-center">
           <input type="file" accept="image/*" multiple onChange={handleFileInput} />
+          
           <div className="text-xs text-gray-500">Up to {MAX_FILES} images, max 3MB each</div>
         </div>
 
@@ -384,6 +393,7 @@ export function ReviewForm({ productId, onSaved }) {
             ))}
           </div>
         )}
+      
       </div>
 
       <div className="mt-3 flex items-center justify-between">
@@ -412,172 +422,156 @@ export function ReviewForm({ productId, onSaved }) {
     </form>
   );
 }
-
 /* ----------------------
-   ReviewList component
+   Review List
    ---------------------- */
-export function ReviewList({ productId, pageSize = 6 }) {
+export function ReviewList({ productId, pageSize = 5 }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(null);
-  const [sort, setSort] = useState("recent"); // or helpful
-  const [error, setError] = useState("");
+  const [sort, setSort] = useState("recent");
+  const [hasMore, setHasMore] = useState(false);
 
-  const fetchReviews = async (page = 1) => {
-  setLoading(true);
-  setError("");
-  const offset = (page - 1) * pageSize;
-  try {
-    const url = `${API_BASE}/api/products/${encodeURIComponent(productId)}/reviews?limit=${pageSize}&offset=${offset}&sort=${sort}`;
-    console.log(url)
-    console.debug("Fetching reviews from", url);
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        // include auth header if needed:
-        // ...getAuthHeaders()
-      },
-      // credentials: 'include' // uncomment if your server uses cookie auth
-    });
-
-    const text = await res.text(); // always read as text first (safer for debugging)
-
-    // If not JSON, log it for inspection and throw an error
+  const fetchReviews = async (p = 1) => {
+    setLoading(true);
+    const offset = (p - 1) * pageSize;
     try {
-      if (!res.ok) {
-        console.error("Reviews fetch returned non-OK:", res.status, text);
-        throw new Error(`Server returned ${res.status}: ${text.slice(0, 400)}`);
-      }
-      const data = text ? JSON.parse(text) : [];
-      // Accept two shapes:
-      // 1) { data: [...], total: 123 }  OR  2) [ ... ]  (legacy)
-      if (Array.isArray(data)) {
-        setReviews(data);
-        setTotal((prev) => {
-          if (data.length < pageSize) return (page - 1) * pageSize + data.length;
-          return prev ?? null;
-        });
-      } else if (data && data.data) {
-        setReviews(data.data || []);
-        setTotal(typeof data.total === "number" ? data.total : (data.data?.length ?? null));
-      } else {
-        // unexpected JSON
-        console.warn("Unexpected reviews JSON shape:", data);
-        setReviews(Array.isArray(data) ? data : []);
-      }
-    } catch (parseErr) {
-      // JSON.parse failed or server returned non-JSON
-      console.error("Failed to parse response as JSON. Raw response:", text);
-      throw new Error("Server returned non-JSON response. See console for full body.");
+      const res = await fetch(`${API_BASE}/api/products/${encodeURIComponent(productId)}/reviews?limit=${pageSize}&offset=${offset}&sort=${sort}`);
+      if (!res.ok) throw new Error("Err");
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.data || []);
+      setReviews(list);
+      setHasMore(list.length === pageSize);
+    } catch {
+      toast.error("Could not load reviews");
+    } finally {
+      setLoading(false);
     }
-  } catch (e) {
-    console.warn("Failed to load reviews:", e);
-    setError(e.message || "Failed to load reviews");
-    setReviews([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchReviews(page);
-    // listen for new review events from ReviewForm
     const onNew = () => fetchReviews(1);
     window.addEventListener("review:created", onNew);
     return () => window.removeEventListener("review:created", onNew);
   }, [productId, page, sort]);
 
-  async function markHelpful(reviewId) {
+  const handleHelpful = async (id) => {
     try {
-      const res = await fetch(`${API_BASE}/api/reviews/${reviewId}/helpful`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-      });
-      if (!res.ok) throw new Error("Failed");
-      // optimistic update: increment helpful on client
-      setReviews((r) => r.map(rt => rt.id === reviewId ? { ...rt, helpful_count: (rt.helpful_count || 0) + 1 } : rt));
-    } catch (e) {
-      alert("Please sign in to vote helpful");
+        const res = await fetch(`${API_BASE}/api/reviews/${id}/helpful`, { method: 'POST', headers: getAuthHeaders() });
+        if(!res.ok) throw new Error("Failed");
+        setReviews(curr => curr.map(r => r.id === id ? { ...r, helpful_count: (r.helpful_count || 0) + 1 } : r));
+        toast.success("Marked as helpful!");
+    } catch {
+        toast.error("Please sign in to vote", { icon: '🔒' });
     }
-  }
+  };
 
   return (
-    <div className="bg-white rounded-lg p-4 border shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold">Customer reviews</h3>
-        <div>
-          <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="border px-2 py-1 text-sm rounded">
-            <option value="recent">Most recent</option>
-            <option value="helpful">Most helpful</option>
-            <option value="rating_desc">Top rated</option>
-          </select>
-        </div>
+    <div className="max-w-screen w-full p-3 mr-3">
+      {/* Toolbar */}
+      <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
+        <h3 className="font-serif font-bold text-xl text-stone-900">Reviews</h3>
+        <select 
+            value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}
+            className="bg-stone-50 border border-stone-200 text-stone-700 text-sm rounded-lg p-2 outline-none focus:ring-2 focus:ring-orange-200"
+        >
+            <option value="recent">Most Recent</option>
+            <option value="helpful">Most Helpful</option>
+            <option value="rating_desc">Highest Rated</option>
+        </select>
       </div>
 
+      {/* List */}
       {loading ? (
-        <div className="py-8 text-center text-gray-500">Loading reviews...</div>
+         <div className="space-y-4 animate-pulse">
+             {[1,2,3].map(i => <div key={i} className="h-32 bg-stone-100 rounded-xl" />)}
+         </div>
       ) : reviews.length === 0 ? (
-        <div className="py-8 text-center text-gray-500">No reviews yet — be the first to write one!</div>
+         <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-100">
+             <div className="text-4xl mb-2">📝</div>
+             <p className="text-stone-500 font-medium">No reviews yet. Be the first to write one!</p>
+         </div>
       ) : (
-        <div className="space-y-4">
-          {reviews.map((r) => (
-            <div key={r.id} className="border rounded p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold">{r.display_name || "Anonymous"}</div>
-                  <div className="text-xs text-gray-500">{friendlyDate(r.created_at)}</div>
-                </div>
-                <div className="text-right">
-                 <div className="text-sm font-medium">
-  <StarRatingDisplay rating={r.rating} size="sm" showValue={false} />
-</div>
+         <div className="space-y-6">
+             {reviews.map(r => (
+                 <div key={r.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
+                     <div className="flex justify-between items-start mb-3">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center font-bold text-stone-500 text-lg uppercase">
+                                {r.display_name?.[0] || "?"}
+                            </div>
+                            <div>
+                                <div className="font-bold text-stone-900 flex items-center gap-2">
+                                    {r.display_name || "Anonymous"}
+                                    {r.is_verified_purchase && (
+                                        <span className="flex items-center gap-1 text-[10px] uppercase bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100 tracking-wider font-bold">
+                                            <Icons.CheckBadge /> Verified
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-stone-400 mt-0.5">
+                                    <StarRatingDisplay rating={r.rating} size="sm" />
+                                    <span>•</span>
+                                    <span>{friendlyDate(r.created_at)}</span>
+                                </div>
+                            </div>
+                         </div>
+                     </div>
+                     
+                     {r.title && <h4 className="font-bold text-stone-800 mb-1">{r.title}</h4>}
+                     <p className="text-stone-600 leading-relaxed text-sm whitespace-pre-line">{r.body}</p>
 
-                  <div className="text-xs text-gray-400">{r.helpful_count || 0} found this helpful</div>
-                </div>
-              </div>
+                     {r.review_images?.length > 0 && (
+                         <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                             {r.review_images.map(img => (
+                                 <img key={img.id} src={img.storage_path} alt="review" className="w-20 h-20 rounded-lg object-cover border border-stone-100" />
+                             ))}
+                         </div>
+                     )}
 
-              {r.title && <div className="mt-2 font-medium">{r.title}</div>}
-              <div className="mt-2 text-sm text-gray-700 whitespace-pre-line">{r.body}</div>
+                            {/* admin replies */}
 
-              {/* images */}
-              {r.review_images?.length > 0 && (
-                <div className="mt-3 flex gap-2">
-                  {r.review_images.map((img) => <img key={img.id} src={img.storage_path} alt={img.alt || ""} className="w-20 h-20 object-cover rounded" />)}
-                </div>
-              )}
-
-              {/* admin replies */}
               {r.review_replies?.length > 0 && (
+
                 <div className="mt-3 bg-gray-50 p-3 rounded text-sm">
+
                   {r.review_replies.map(rep => <div key={rep.id}><strong>Reply:</strong> {rep.body}</div>)}
+
                 </div>
+
               )}
 
-              <div className="mt-3 flex items-center gap-3">
-                <button onClick={() => markHelpful(r.id)} className="text-sm text-gray-500 hover:text-amber-500">Helpful</button>
-                <button onClick={() => alert("Report flow not implemented")} className="text-sm text-red-500">Report</button>
-              </div>
-            </div>
-          ))}
-        </div>
+                     <div className="mt-4 pt-4 border-t border-stone-50 flex items-center gap-4">
+                         <button 
+                            onClick={() => handleHelpful(r.id)}
+                            className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-orange-600 transition-colors group"
+                         >
+                             <div className="group-hover:scale-110 transition-transform"><Icons.ThumbsUp /></div>
+                             <span>Helpful ({r.helpful_count || 0})</span>
+                         </button>
+                     </div>
+                 </div>
+             ))}
+         </div>
       )}
 
-      {/* pagination controls */}
-      <div className="mt-4 flex items-center justify-center gap-2">
-        <button onClick={() => setPage(p => Math.max(1, p-1))} className="px-3 py-1 border rounded">Prev</button>
-        <div className="text-sm px-3 py-1">Page {page}</div>
-        <button onClick={() => setPage(p => p+1)} className="px-3 py-1 border rounded">Next</button>
+      {/* Pagination */}
+      <div className="mt-8 flex justify-center gap-2">
+          <button 
+            onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1}
+            className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2 bg-stone-100 rounded-lg text-sm font-bold text-stone-900">{page}</span>
+          <button 
+            onClick={() => setPage(p => p+1)} disabled={!hasMore && reviews.length < pageSize}
+            className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
       </div>
-
-      {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
     </div>
   );
 }
-
-

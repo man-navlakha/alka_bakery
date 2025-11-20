@@ -154,7 +154,7 @@ export default function AdminReviews() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Admin — Manage Reviews</h1>
         <div className="flex items-center gap-3">
-          <button onClick={() => { setFilters({ status: "pending", product: "", has_images: "any", min_rating: "", search: "" }); setPage(1); }} className="px-3 py-2 bg-stone-100 rounded">Reset filters</button>
+          <button onClick={() => { setFilters({ status: "all", product: "", has_images: "any", min_rating: "", search: "" }); setPage(1); }} className="px-3 py-2 bg-stone-100 rounded">Reset filters</button>
           <button onClick={() => loadReviews()} className="px-3 py-2 bg-amber-500 text-white rounded">Refresh</button>
         </div>
       </div>

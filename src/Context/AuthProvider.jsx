@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import toast, { Toaster } from 'react-hot-toast';
+
 
 const AuthContext = createContext();
 
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("refreshToken", data.refreshToken);
       setUser(data.user);
       toast.success("Welcome back!");
-      navigate("/profile");
+      navigate("/");
     } catch (error) {
       toast.error(error.message);
     }
@@ -98,6 +99,10 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading, API_URL }}>
+             <Toaster
+        position="top-center"
+        reverseOrder={false}
+      />
       {!loading && children}
     </AuthContext.Provider>
   );
