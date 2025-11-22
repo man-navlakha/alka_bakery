@@ -183,32 +183,41 @@ export function CartProvider({ children }) {
     }
 
     async function applyCoupon(code) {
-        if (!code) return;
-        setLoading(true);
-        setError("");
-        try {
-            const res = await fetch(`${API_BASE}/api/cart/apply-coupon`, {
-                method: "POST",
-                headers: getCommonHeaders(),
-                credentials: "include",
-                body: JSON.stringify({ code }),
-            });
+    if (!code) return;
+    setLoading(true);
+    setError("");
+    try {
+        const res = await fetch(`${API_BASE}/api/cart/apply-coupon`, {
+            method: "POST",
+            headers: getCommonHeaders(),
+            credentials: "include",
+            body: JSON.stringify({ code }),
+        });
 
-            const text = await res.text();
-            if (!res.ok) {
-                const err = JSON.parse(text);
-                throw new Error(err.error || "Failed to apply coupon");
-            }
-
-            const data = text ? JSON.parse(text) : null;
-            syncCartFromResponse(res, data);
-        } catch (e) {
-            console.error("applyCoupon failed:", e);
-            setError(e.message);
-        } finally {
-            setLoading(false);
+        const text = await res.text();
+        if (!res.ok) {
+            // parse server error body safely
+            let errData = {};
+            try { errData = text ? JSON.parse(text) : {}; } catch (parseErr) { /* ignore parse error */ }
+            const msg = errData?.message || errData?.error || `Failed to apply coupon (${res.status})`;
+            throw new Error(msg);
         }
+
+        const data = text ? JSON.parse(text) : null;
+        syncCartFromResponse(res, data);
+
+        // return data so callers can inspect if needed
+        return data;
+    } catch (e) {
+        console.error("applyCoupon failed:", e);
+        setError(e.message || "Failed to apply coupon");
+        // IMPORTANT: rethrow so UI/components know the call failed
+        throw e;
+    } finally {
+        setLoading(false);
     }
+}
+
 
     async function removeCoupon() {
         setLoading(true);
