@@ -444,260 +444,320 @@ function CouponForm({
   onSave,
   onDelete,
 }) {
+  const [rewardType, setRewardType] = useState("discount"); // 'discount' | 'gift'
+
+  // Sync local state if the user selects a different coupon to edit from the parent
+  useEffect(() => {
+    if (draft.free_gift_product_id) {
+      setRewardType("gift");
+    } else {
+      setRewardType("discount");
+    }
+  }, [draft.id, draft.free_gift_product_id]);
+
+  const handleTypeSwitch = (type) => {
+    setRewardType(type);
+    if (type === "discount") {
+      // Clearing gift data so it doesn't persist if saved
+      onChange("free_gift_product_id", null);
+      onChange("free_gift_qty", 1);
+    } else {
+      // Clearing discount value
+      onChange("value", 0);
+    }
+  };
+
   return (
     <form
       onSubmit={onSave}
-      className="bg-white border border-stone-200 rounded-2xl shadow-sm p-5 space-y-6"
+      className="bg-white border border-stone-200 rounded-2xl shadow-sm p-6 space-y-6"
     >
-      {/* Basic Info */}
-      <section className="grid md:grid-cols-2 gap-4">
+      {/* 1. Core Identity */}
+      <div className="grid md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
+          <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-1.5">
             Coupon Code
           </label>
           <input
             type="text"
             value={draft.code}
             onChange={(e) => onChange("code", e.target.value.toUpperCase())}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-mono"
-            placeholder="WELCOME10"
+            className="w-full border border-stone-300 rounded-lg px-3 py-2.5 font-mono text-stone-800 focus:ring-2 focus:ring-orange-100 focus:border-orange-400 outline-none transition-all"
+            placeholder="SUMMER25"
             required
           />
-          <p className="text-[11px] text-stone-400 mt-1">
-            Shown to customers. Must be unique.
+          <p className="text-[10px] text-stone-400 mt-1">
+            Must be unique. Customers enter this at checkout.
           </p>
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Label / Description
+          <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+            Description
           </label>
           <input
             type="text"
             value={draft.description || ""}
             onChange={(e) => onChange("description", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
-            placeholder="10% off on all cakes"
+            className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-stone-800 focus:ring-2 focus:ring-orange-100 focus:border-orange-400 outline-none transition-all"
+            placeholder="e.g. 25% off summer sale"
           />
         </div>
+      </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Discount Type
-          </label>
-          <select
-            value={draft.type}
-            onChange={(e) => onChange("type", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="percent">% Percent</option>
-            <option value="fixed">₹ Fixed Amount</option>
-          </select>
-        </div>
+      {/* 2. Reward Type Switcher */}
+      <div className="bg-stone-50 p-1 rounded-xl flex border border-stone-200">
+        <button
+          type="button"
+          onClick={() => handleTypeSwitch("discount")}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+            rewardType === "discount"
+              ? "bg-white text-orange-700 shadow-sm ring-1 ring-stone-200"
+              : "text-stone-500 hover:bg-stone-100"
+          }`}
+        >
+          💰 Discount (Fixed / %)
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTypeSwitch("gift")}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+            rewardType === "gift"
+              ? "bg-white text-orange-700 shadow-sm ring-1 ring-stone-200"
+              : "text-stone-500 hover:bg-stone-100"
+          }`}
+        >
+          🎁 Free Gift
+        </button>
+      </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Discount Value
-          </label>
-          <input
-            type="number"
-            min="0"
-            value={draft.value}
-            onChange={(e) => onChange("value", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-            placeholder={draft.type === "percent" ? "10 = 10%" : "100 = ₹100"}
-          />
-        </div>
+      {/* 3. Reward Configuration (Conditional) */}
+      <div className="bg-stone-50/50 rounded-xl p-5 border border-stone-100">
+        {rewardType === "discount" ? (
+          <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div>
+              <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+                Discount Type
+              </label>
+              <select
+                value={draft.type}
+                onChange={(e) => onChange("type", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 bg-white text-sm"
+              >
+                <option value="percent">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (₹)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+                Value
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={draft.value}
+                onChange={(e) => onChange("value", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 bg-white text-sm"
+                placeholder={draft.type === "percent" ? "15" : "100"}
+              />
+              <p className="text-[10px] text-stone-400 mt-1">
+                {draft.type === "percent"
+                  ? "Example: 15 for 15% off"
+                  : "Example: 100 for ₹100 off"}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div>
+              <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+                Select Gift Product
+              </label>
+              <select
+                value={draft.free_gift_product_id || ""}
+                onChange={(e) =>
+                  onChange("free_gift_product_id", e.target.value)
+                }
+                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 bg-white text-sm"
+              >
+                <option value="">-- Choose a Product --</option>
+                {productOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+                Quantity
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={draft.free_gift_qty || 1}
+                onChange={(e) => onChange("free_gift_qty", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 bg-white text-sm"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Min Cart Amount
-          </label>
-          <input
-            type="number"
-            min="0"
-            value={draft.min_cart_amount}
-            onChange={(e) => onChange("min_cart_amount", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-            placeholder="500 = applies when cart ≥ 500"
-          />
-        </div>
+      {/* 4. Triggers & Rules */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-bold text-stone-800 flex items-center gap-2 border-b border-stone-100 pb-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+          Rules & Constraints
+        </h3>
 
-        <div className="flex items-center gap-3 mt-5">
-          <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600">
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 mb-1">
+              Min Cart Amount (₹)
+            </label>
             <input
-              type="checkbox"
-              checked={!!draft.is_active}
-              onChange={(e) => onChange("is_active", e.target.checked)}
-              className="rounded border-stone-300"
+              type="number"
+              min="0"
+              value={draft.min_cart_amount}
+              onChange={(e) => onChange("min_cart_amount", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="0"
             />
-            Active
-          </label>
-
-          <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600">
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 mb-1">
+              Usage Limit (Total)
+            </label>
             <input
-              type="checkbox"
-              checked={!!draft.is_auto}
-              onChange={(e) => onChange("is_auto", e.target.checked)}
-              className="rounded border-stone-300"
+              type="number"
+              min="0"
+              value={draft.max_uses || ""}
+              onChange={(e) => onChange("max_uses", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Unlimited"
             />
-            Auto Apply
-          </label>
-        </div>
-      </section>
-
-      {/* Schedules & limits */}
-      <section className="grid md:grid-cols-2 gap-4 border-t border-stone-100 pt-4">
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Starts At (optional)
-          </label>
-          <input
-            type="datetime-local"
-            value={draft.valid_from || ""}
-            onChange={(e) => onChange("valid_from", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Ends At (optional)
-          </label>
-          <input
-            type="datetime-local"
-            value={draft.valid_to || ""}
-            onChange={(e) => onChange("valid_to", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Max Uses (Total)
-          </label>
-          <input
-            type="number"
-            min="0"
-            value={draft.max_uses || ""}
-            onChange={(e) => onChange("max_uses", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-            placeholder="Leave blank = no limit"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 mb-1">
-            Max Uses per User
-          </label>
-          <input
-            type="number"
-            min="0"
-            value={draft.per_user_limit || ""}
-            onChange={(e) => onChange("per_user_limit", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-            placeholder="Leave blank = no limit"
-          />
-        </div>
-      </section>
-
-      {/* Auto / Free Gift Config */}
-      <section className="border-t border-stone-100 pt-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-stone-800">
-            Auto Apply & Free Gift
-          </h3>
-          <span className="text-[11px] text-stone-400">
-            Used by cartController for auto discount & free gift logic
-          </span>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 mb-1">
+              Limit Per User
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={draft.per_user_limit || ""}
+              onChange={(e) => onChange("per_user_limit", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Unlimited"
+            />
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-stone-500 mb-1">
-              Auto Threshold (Subtotal)
+              Valid From
+            </label>
+            <input
+              type="datetime-local"
+              value={draft.valid_from || ""}
+              onChange={(e) => onChange("valid_from", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-500 mb-1">
+              Valid Until
+            </label>
+            <input
+              type="datetime-local"
+              value={draft.valid_to || ""}
+              onChange={(e) => onChange("valid_to", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-600"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Automation Settings */}
+      <div className="border-t border-stone-100 pt-4">
+        <div className="flex flex-col sm:flex-row gap-6">
+          {/* Active Toggle */}
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={!!draft.is_active}
+              onChange={(e) => onChange("is_active", e.target.checked)}
+              className="w-5 h-5 text-orange-600 border-stone-300 rounded focus:ring-orange-500"
+            />
+            <div>
+              <div className="text-sm font-bold text-stone-700 group-hover:text-orange-700">
+                Active Status
+              </div>
+              <div className="text-[11px] text-stone-400">
+                Enable this coupon
+              </div>
+            </div>
+          </label>
+
+          {/* Auto Apply Toggle */}
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={!!draft.is_auto}
+              onChange={(e) => onChange("is_auto", e.target.checked)}
+              className="w-5 h-5 text-orange-600 border-stone-300 rounded focus:ring-orange-500"
+            />
+            <div>
+              <div className="text-sm font-bold text-stone-700 group-hover:text-orange-700">
+                Auto-Apply
+              </div>
+              <div className="text-[11px] text-stone-400">
+                Apply automatically if conditions met
+              </div>
+            </div>
+          </label>
+        </div>
+
+        {/* Auto Threshold (Only if Auto is enabled) */}
+        {draft.is_auto && (
+          <div className="mt-4 pl-8 animate-in fade-in slide-in-from-top-1">
+            <label className="block text-xs font-bold text-stone-500 uppercase mb-1">
+              Auto-Apply Threshold (₹)
             </label>
             <input
               type="number"
               min="0"
               value={draft.auto_threshold}
               onChange={(e) => onChange("auto_threshold", e.target.value)}
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-              placeholder="e.g. 999 – auto apply above this amount"
+              className="w-48 border border-stone-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="e.g. 1000"
             />
             <p className="text-[11px] text-stone-400 mt-1">
-              If subtotal ≥ threshold and coupon is auto + active, it can be
-              applied automatically.
+              Triggers when cart subtotal reaches this amount.
             </p>
           </div>
+        )}
+      </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-stone-500 mb-1">
-              Free Gift Product (optional)
-            </label>
-            <select
-              value={draft.free_gift_product_id || ""}
-              onChange={(e) =>
-                onChange("free_gift_product_id", e.target.value || "")
-              }
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="">No free gift</option>
-              {productOptions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.id})
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-stone-400 mt-1">
-              When set, cartController can auto add this product as free gift
-              when coupon triggers.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-500 mb-1">
-              Free Gift Quantity
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={draft.free_gift_qty}
-              onChange={(e) => onChange("free_gift_qty", e.target.value)}
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
-              disabled={!draft.free_gift_product_id}
-            />
-          </div>
-        </div>
-
-        {/* Read-only counters */}
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-stone-500">
-          {typeof draft.used_count !== "undefined" && (
-            <span>
-              Uses:{" "}
-              <span className="font-semibold text-stone-800">
-                {draft.used_count}
-              </span>
-            </span>
-          )}
-        </div>
-      </section>
-
-      {/* Actions */}
-      <div className="pt-4 border-t border-stone-100 flex items-center justify-between gap-4">
-        {onDelete && draft.id && (
+      {/* Footer Actions */}
+      <div className="pt-6 border-t border-stone-200 flex items-center justify-between">
+        {onDelete && draft.id ? (
           <button
             type="button"
             onClick={onDelete}
-            className="text-xs font-semibold text-red-500 hover:text-red-600"
+            className="text-red-500 text-sm font-bold hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
           >
             Delete Coupon
           </button>
+        ) : (
+          <div></div>
         )}
 
-        <div className="ml-auto flex gap-3">
+        <div className="flex gap-3">
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-semibold shadow-sm hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-orange-600 hover:shadow-orange-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving…" : "Save Coupon"}
           </button>

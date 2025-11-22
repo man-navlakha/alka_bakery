@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useCart } from "../../Context/CartContext";
 
 export default function CartTotalsCard({ showCheckoutButton = true }) {
@@ -10,22 +10,24 @@ export default function CartTotalsCard({ showCheckoutButton = true }) {
         couponDiscount,
         autoCouponCode,
         autoDiscount,
-        freeGiftApplied,
         items,
         giftItems,
-        itemCount,  
-        updateItemQuantity,
-        removeItem,
         applyCoupon,
         removeCoupon,
         loading,
-        error,
     } = useCart();
 
     const [couponInput, setCouponInput] = useState(couponCode || "");
 
-    const hasCoupon = couponCode && couponDiscount > 0;
-    const hasAuto = autoCouponCode && autoDiscount > 0;
+    // Helper to get product details safely
+    function getProductMeta(item) {
+        // 1. Try name from backend (new logic)
+        if (item.product_name) return { name: item.product_name };
+        // 2. Try nested product object (if cart structure varies)
+        if (item.products?.name) return { name: item.products.name };
+        // 3. Fallback to ID
+        return { name: "Free Gift" };
+    }
 
     return (
         <div className="space-y-4">
@@ -84,7 +86,6 @@ export default function CartTotalsCard({ showCheckoutButton = true }) {
                         return (
                             <div key={g.id} className="flex justify-between">
                                 <span>{name}</span>
-                                <span className="font-semibold">₹0</span>
                             </div>
                         );
                     })}
@@ -111,13 +112,14 @@ export default function CartTotalsCard({ showCheckoutButton = true }) {
                 </div>
             </div>
 
-            <button
-                className="w-full py-3.5 bg-stone-900 text-white rounded-xl font-bold hover:bg-orange-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={items.length === 0 || loading}
-            >
-                Proceed to Checkout
-            </button>
+            {showCheckoutButton && (
+                <button
+                    className="w-full py-3.5 bg-stone-900 text-white rounded-xl font-bold hover:bg-orange-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={items.length === 0 || loading}
+                >
+                    Proceed to Checkout
+                </button>
+            )}
         </div>
-
     );
 }

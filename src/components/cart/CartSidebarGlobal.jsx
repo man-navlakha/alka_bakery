@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useCart } from "../../Context/CartContext";
 import { useCartDrawer } from "../../Context/CartDrawerContext";
-import { X, Loader2 } from "lucide-react"; //
+import { X, Loader2 } from "lucide-react"; 
 import CartTotalsCard from "./CartTotalsCard";
 
 const IconCart = ({ count }) => (
@@ -19,39 +19,40 @@ const IconCart = ({ count }) => (
 
 export default function CartSidebarGlobal({ products = [] }) {
     const { isOpen, closeCart } = useCartDrawer();
-    // 1. Get the loading state from context
     const {
         items,
-        giftItems,
-        grandTotal,
-        couponCode,
-        couponDiscount,
-        autoCouponCode,
-        autoDiscount,
-        freeGiftApplied,
         itemCount,
         updateItemQuantity,
         removeItem,
-        applyCoupon,
-        removeCoupon,
         loading,
-        error,
     } = useCart();
 
-    const [couponInput, setCouponInput] = useState(couponCode || "");
     function getProductMeta(it) {
-        const p = products.find((x) => x.id === it.product_id);
-        const name = p?.name || it.product_id;
+        // Prioritize data from the cart item itself (populated by backend join)
+        let name = it.product_name;
+        let image = it.product_image;
+
+        // Fallback: Look up in the products prop if backend data is missing
+        if (!name && products.length > 0) {
+            const p = products.find((x) => x.id === it.product_id);
+            if (p) {
+                name = p.name;
+                // Handle image array vs string
+                image = Array.isArray(p.images) ? p.images[0] : (p.image || p.product_images?.[0]?.url);
+            }
+        }
+
+        // Defaults
+        name = name || "Unknown Item";
+        
         let label = "";
         if (it.unit === "gm") label = `${it.grams || ""}g pack`;
         else if (it.unit === "variant") label = it.variant_label || "Variant";
         else if (it.unit === "pc") label = "Single Item";
 
-        let emoji = "🥐";
-        if (p?.category === "Cookies") emoji = "🍪";
-        else if (p?.category === "Cakes") emoji = "🍰";
+        let emoji = "🥐"; // Default icon if no image
 
-        return { name, label, emoji };
+        return { name, label, emoji, image };
     }
 
     return (
@@ -65,7 +66,7 @@ export default function CartSidebarGlobal({ products = [] }) {
                 className={`absolute right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-md bg-white shadow-2xl transition-transform duration-300 flex flex-col ${isOpen ? "translate-x-0" : "translate-x-full"
                     }`}
             >
-                {/* 2. Loading Overlay */}
+                {/* Loading Overlay */}
                 {loading && (
                     <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
                         <div className="bg-white p-3 rounded-full shadow-xl border border-stone-100">
@@ -104,7 +105,7 @@ export default function CartSidebarGlobal({ products = [] }) {
                     )}
 
                     {items.map((it) => {
-                        const { name, label, emoji } = getProductMeta(it);
+                        const { name, label, emoji, image } = getProductMeta(it);
                         const itemTotal = Number(it.line_total || 0);
 
                         return (
@@ -112,8 +113,12 @@ export default function CartSidebarGlobal({ products = [] }) {
                                 key={it.id}
                                 className="flex gap-4 group border border-stone-100 p-3 rounded-xl shadow-sm bg-white"
                             >
-                                <div className="w-16 h-16 bg-stone-100 rounded-lg flex items-center justify-center text-2xl shrink-0">
-                                    {emoji}
+                                <div className="w-16 h-16 bg-stone-100 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                                    {image ? (
+                                        <img src={image} alt={name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        emoji
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start gap-2">
@@ -166,7 +171,6 @@ export default function CartSidebarGlobal({ products = [] }) {
                 <div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                     <CartTotalsCard />
                 </div>
-               
             </div>
         </div>
     );
