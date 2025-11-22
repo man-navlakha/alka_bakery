@@ -5,11 +5,16 @@ import { useAuth } from "../Context/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { Loader2, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import AddressList from "../components/Addresses";
+import AddressForm from "../components/AddressForm";
+
 
 export default function Checkout() {
   const { items, grandTotal, discountTotal, subtotal, couponCode, loading: cartLoading } = useCart();
   const { user, API_URL } = useAuth();
   const navigate = useNavigate();
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState(null);
+
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -44,7 +49,10 @@ export default function Checkout() {
     }
 
     setLoading(true);
-    const fullAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zip}. Phone: ${formData.phone}`;
+    const fullAddress = selectedSavedAddress
+  ? `${selectedSavedAddress.address_line1}, ${selectedSavedAddress.city}, ${selectedSavedAddress.state} - ${selectedSavedAddress.postal_code}. Phone: ${formData.phone}`
+  : `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zip}. Phone: ${formData.phone}`;
+
 
     try {
       const token = localStorage.getItem("accessToken");
@@ -111,7 +119,38 @@ export default function Checkout() {
         <h1 className="text-3xl font-serif font-bold text-stone-900 mb-8 text-center">Checkout</h1>
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
-          
+          {/* ⭐ SAVED ADDRESS SECTION ⭐ */}
+<div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 mb-8">
+  <h2 className="text-xl font-bold text-stone-800 mb-4">
+    Choose Saved Address
+  </h2>
+
+  <AddressList 
+    userId={user?.id} 
+    onSelectAddress={(addr) => {
+      setSelectedSavedAddress(addr);
+
+      // Auto-fill form fields from saved address
+      setFormData((prev) => ({
+        ...prev,
+        address: `${addr.address_line1} ${addr.address_line2 || ""}`,
+        city: addr.city,
+        state: addr.state,
+        zip: addr.postal_code,
+      }));
+    }}
+  />
+</div>
+
+{/* ⭐ ADD NEW ADDRESS SECTION ⭐ */}
+<div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 mb-8">
+  <h2 className="text-xl font-bold text-stone-800 mb-4">
+    Add New Address (Map + Autosuggest)
+  </h2>
+
+  <AddressForm userId={user?.id} />
+</div>
+
           {/* LEFT: Shipping Form */}
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-stone-200">
             <h2 className="text-xl font-bold text-stone-800 mb-6 flex items-center gap-2">
