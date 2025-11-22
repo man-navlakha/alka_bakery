@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useCart } from "../../Context/CartContext";
 
 export default function CartTotalsCard({ showCheckoutButton = true }) {
@@ -12,26 +12,39 @@ export default function CartTotalsCard({ showCheckoutButton = true }) {
         autoDiscount,
         items,
         giftItems,
+        availableCoupons, // from Context
         applyCoupon,
         removeCoupon,
         loading,
     } = useCart();
 
-    const [couponInput, setCouponInput] = useState(couponCode || "");
+    const [inputMode, setInputMode] = useState("select"); // 'select' | 'custom'
+    const [couponInput, setCouponInput] = useState("");
 
-    // Helper to get product details safely
+    // Function to get product details for gifts
     function getProductMeta(item) {
-        // 1. Try name from backend (new logic)
-        if (item.product_name) return { name: item.product_name };
-        // 2. Try nested product object (if cart structure varies)
-        if (item.products?.name) return { name: item.products.name };
-        // 3. Fallback to ID
-        return { name: "Free Gift" };
+        // This helper is used for the Gift Item display, assuming item details are populated
+        // For cart_items joined with products from backend, the structure might differ.
+        // Assuming standard item structure here.
+        return { name: `Gift Product (${item.product_id.substring(0, 5)}...)` }; 
     }
+
+    const handleSelectChange = (e) => {
+        const val = e.target.value;
+        if (val === "custom") {
+            setInputMode("custom");
+            setCouponInput("");
+        } else {
+            setInputMode("select");
+            setCouponInput(val);
+            // Auto-apply if not empty default
+            if (val) applyCoupon(val);
+        }
+    };
 
     return (
         <div className="space-y-4">
-            {/* Coupon input */}
+            {/* Coupon Input Section */}
             <div className="space-y-2">
                 <label className="text-xs font-semibold text-stone-500 uppercase">Coupon</label>
 
@@ -44,34 +57,77 @@ export default function CartTotalsCard({ showCheckoutButton = true }) {
                             </div>
                         </div>
                         <button
-                            onClick={removeCoupon}
+                            onClick={() => {
+                                removeCoupon();
+                                setInputMode("select");
+                                setCouponInput("");
+                            }}
                             className="text-[11px] text-red-500 font-semibold hover:underline"
                         >
                             Remove
                         </button>
                     </div>
                 ) : (
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={couponInput}
-                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                            placeholder="Enter coupon code"
-                            className="flex-1 text-sm border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-orange-200"
-                        />
-                        <button
-                            onClick={() => couponInput && applyCoupon(couponInput)}
-                            disabled={!couponInput || loading}
-                            className="px-4 py-2 bg-stone-900 text-white text-xs font-bold rounded-lg disabled:opacity-50"
-                        >
-                            Apply
-                        </button>
+                    <div className="flex flex-col gap-2">
+                        {/* Dropdown for available coupons */}
+                        {availableCoupons.length > 0 && inputMode === "select" && (
+                            <div className="relative">
+                                <select
+                                    className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-orange-200 bg-white appearance-none cursor-pointer"
+                                    onChange={handleSelectChange}
+                                    value={couponInput}
+                                >
+                                    <option value="">-- Select an offer --</option>
+                                    {availableCoupons.map((c) => (
+                                        <option key={c.code} value={c.code}>
+                                            {c.code} - {c.description || (c.type === 'percent' ? `${c.value}% Off` : `₹${c.value} Off`)}
+                                        </option>
+                                    ))}
+                                    <option disabled>──────────</option>
+                                    <option value="custom">Enter Custom Code...</option>
+                                </select>
+                                {/* Arrow Icon */}
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-500">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Manual Input */}
+                        {(availableCoupons.length === 0 || inputMode === "custom") && (
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={couponInput}
+                                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                                    placeholder="Enter coupon code"
+                                    className="flex-1 text-sm border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-orange-200"
+                                    autoFocus={inputMode === "custom"}
+                                />
+                                {inputMode === "custom" && availableCoupons.length > 0 && (
+                                    <button 
+                                        onClick={() => setInputMode("select")}
+                                        className="px-3 py-2 border border-stone-200 text-stone-500 text-xs font-bold rounded-lg hover:bg-stone-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => couponInput && applyCoupon(couponInput)}
+                                    disabled={!couponInput || loading}
+                                    className="px-4 py-2 bg-stone-900 text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {autoCouponCode && (
-                    <div className="text-[11px] text-green-700">
-                        Auto offer <span className="font-semibold">{autoCouponCode}</span>{" "}
+                {/* Auto-Applied Info */}
+                {autoCouponCode && !couponCode && (
+                    <div className="text-[11px] text-green-700 bg-green-50/50 p-2 rounded border border-green-100">
+                        Automatic offer <span className="font-semibold">{autoCouponCode}</span>{" "}
                         applied: -₹{autoDiscount.toFixed(0)}
                     </div>
                 )}
@@ -80,15 +136,13 @@ export default function CartTotalsCard({ showCheckoutButton = true }) {
             {/* Free gift section */}
             {giftItems.length > 0 && (
                 <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2 text-xs text-orange-800">
-                    <div className="font-bold mb-1">🎁 Free Gift</div>
-                    {giftItems.map((g) => {
-                        const { name } = getProductMeta(g);
-                        return (
-                            <div key={g.id} className="flex justify-between">
-                                <span>{name}</span>
-                            </div>
-                        );
-                    })}
+                    <div className="font-bold mb-1">🎁 Free Gift Added</div>
+                    {giftItems.map((g) => (
+                        <div key={g.id} className="flex justify-between">
+                            <span>{g.product_id}</span>
+                            <span className="font-semibold">Free</span>
+                        </div>
+                    ))}
                 </div>
             )}
 

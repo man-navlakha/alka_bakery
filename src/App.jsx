@@ -6,8 +6,10 @@ import Main from "./pages/Main";
 import ShopWithApi from "./pages/ShopPage";
 import { CartProvider } from "./Context/CartContext";
 import { CartDrawerProvider } from "./Context/CartDrawerContext";
+import { PrivateRoute } from "./PrivateRoute";
 import Navbar from "./components/self/Navbar";
 import CartSidebarGlobal from "./components/cart/CartSidebarGlobal";
+import Checkout from "@/pages/Checkout";
 import AdminRoute from "./AdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductManagement from "./pages/admin/AdminProductManagement";
@@ -30,6 +32,7 @@ export default function App() {
             <Route path="/product/:id" element={<ProductPage />} />
             <Route path="/shop" element={
               <ShopWithApi />} />
+              <Route element={<PrivateRoute><Checkout /></PrivateRoute>} path="/checkout" />
 
             {/* User Routes */}
             <Route path="/profile" element={<Profile />} />
