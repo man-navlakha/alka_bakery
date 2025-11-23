@@ -17,6 +17,8 @@ import AdminReviews from "./pages/admin/AdminReviews";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 
 import AddressPage from "./pages/AddressPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrdersPage from "./pages/OrdersPage";
 // import Toaster from "react-hot-toast";
 
 export default function App() {
@@ -35,6 +37,24 @@ export default function App() {
               <ShopWithApi />} />
              
 <Route element={<PrivateRoute><AddressPage /></PrivateRoute>} path="/addresses" />
+
+<Route 
+              path="/checkout" 
+              element={
+                <PrivateRoute>
+                  <CheckoutPage />
+                </PrivateRoute>
+              } 
+            />
+
+            <Route 
+  path="/orders" 
+  element={
+    <PrivateRoute>
+      <OrdersPage />
+    </PrivateRoute>
+  } 
+/>
             {/* User Routes */}
             <Route path="/profile" element={<Profile />} />
 

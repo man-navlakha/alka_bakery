@@ -1,3 +1,4 @@
+// src/components/cart/CartSidebarGlobal.jsx
 import React, { useState, useEffect } from "react";
 import { useCart } from "../../Context/CartContext";
 import { useCartDrawer } from "../../Context/CartDrawerContext";
@@ -19,7 +20,10 @@ const IconCart = ({ count }) => (
   </div>
 );
 
-export default function CartSidebarGlobal({ products: propProducts = [] }) {
+// FIX: Define default prop outside component to maintain stable reference and prevent infinite loops
+const DEFAULT_PRODUCTS = [];
+
+export default function CartSidebarGlobal({ products: propProducts = DEFAULT_PRODUCTS }) {
   const { isOpen, closeCart } = useCartDrawer();
   const {
     items,      // Paid items
@@ -27,21 +31,36 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
     itemCount,
     updateItemQuantity,
     removeItem,
-    loading,
+    loading: cartLoading,
   } = useCart();
 
-  const [products, setProducts] = useState(propProducts);
-
+ const [products, setProducts] = useState(propProducts);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   // 1. Fetch product details if not provided via props
   useEffect(() => {
-    if (propProducts.length === 0) {
-      fetch(`${API_BASE}/api/products`)
-        .then((res) => res.json())
-        .then((data) => setProducts(data))
-        .catch((err) => console.error("Failed to load product info for cart:", err));
-    } else {
+    // If props are explicitly provided (and not empty default), use them
+    if (propProducts !== DEFAULT_PRODUCTS && propProducts.length > 0) {
       setProducts(propProducts);
+      return;
     }
+
+    // FIX: Only fetch when the cart is actually OPEN to save bandwidth
+    if (!isOpen) return;
+
+    setLoadingProducts(true);
+    const controller = new AbortController();
+
+    fetch(`${API_BASE}/api/products`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error("Failed to load product info for cart:", err);
+        }
+      })
+      .finally(() => setLoadingProducts(false));
+
+    return () => controller.abort();
   }, [propProducts, isOpen]);
 
   // 2. Merge items for display
@@ -71,6 +90,8 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
     return { name, label, image, emoji };
   }
 
+  const isLoading = cartLoading || (loadingProducts && products.length === 0);
+
   return (
     <div className={`fixed inset-0 mt-20 z-[60] ${isOpen ? "" : "pointer-events-none"}`}>
       <div
@@ -81,7 +102,7 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
         className={`absolute right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-md bg-white shadow-2xl transition-transform duration-300 flex flex-col ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         {/* Loading Overlay */}
-        {loading && (
+        {isLoading && (
           <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
             <div className="bg-white p-3 rounded-full shadow-xl border border-stone-100">
               <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
@@ -101,7 +122,7 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
 
         {/* Items List */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {allCartItems.length === 0 && !loading && (
+          {!isLoading && allCartItems.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-stone-400 space-y-4 opacity-60">
               <IconCart count={0} />
               <p>Your basket is empty.</p>
@@ -131,7 +152,6 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
                     <span className="text-2xl">{emoji}</span>
                   )}
                   
-                  {/* Gift Badge overlay */}
                   {isGift && (
                     <div className="absolute top-0 left-0 w-full h-full bg-black/10 flex items-center justify-center">
                         <div className="bg-white p-1 rounded-full shadow-sm">
@@ -152,7 +172,6 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
                       <div className="text-xs text-stone-500 mt-0.5">{label}</div>
                     </div>
                     
-                    {/* PRICE */}
                     <div className="text-right shrink-0">
                       {isGift ? (
                         <div className="font-bold text-green-600 uppercase text-sm tracking-wider">FREE</div>
@@ -170,26 +189,14 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
                       </div>
                     ) : (
                       <div className="flex items-center bg-stone-50 border rounded-lg h-8">
-                        <button
-                          onClick={() => updateItemQuantity(it.id, (it.quantity || 1) - 1)}
-                          className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-l-lg font-bold"
-                        >
-                          -
-                        </button>
+                        <button onClick={() => updateItemQuantity(it.id, (it.quantity || 1) - 1)} className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-l-lg font-bold">-</button>
                         <span className="w-8 text-center text-xs font-bold">{it.quantity}</span>
-                        <button
-                          onClick={() => updateItemQuantity(it.id, (it.quantity || 1) + 1)}
-                          className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-r-lg font-bold"
-                        >
-                          +
-                        </button>
+                        <button onClick={() => updateItemQuantity(it.id, (it.quantity || 1) + 1)} className="w-8 h-full text-stone-500 hover:bg-stone-200 rounded-r-lg font-bold">+</button>
                       </div>
                     )}
 
                     {!isGift && (
-                      <button onClick={() => removeItem(it.id)} className="text-xs text-red-400 hover:text-red-600 font-medium p-1">
-                        Remove
-                      </button>
+                      <button onClick={() => removeItem(it.id)} className="text-xs text-red-400 hover:text-red-600 font-medium p-1">Remove</button>
                     )}
                   </div>
                 </div>
@@ -199,11 +206,11 @@ export default function CartSidebarGlobal({ products: propProducts = [] }) {
         </div>
 
         {/* Footer Totals */}
-       {allCartItems.length >= 1 && (
-  <div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-    <CartTotalsCard products={products} />
-  </div>
-)}
+        {allCartItems.length >= 1 && (
+          <div className="p-6 border-t bg-stone-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <CartTotalsCard products={products} />
+          </div>
+        )}
 
       </div>
     </div>
