@@ -7,6 +7,7 @@ import { MapPin, ShoppingBag, Wallet, CheckCircle, AlertCircle, Loader2, Chevron
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import toast from "react-hot-toast";
+import { Smartphone } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -22,7 +23,33 @@ export default function CheckoutPage() {
 
   const DELIVERY_FEE = 50;
   const FINAL_PAYABLE = grandTotal + DELIVERY_FEE;
+const handlePhonePePayment = async () => {
+    if (!selectedAddressId) {
+      toast.error("Please select a delivery address");
+      return;
+    }
+    
+    setPlacingOrder(true);
+    try {
+      // 1. Ask Backend for Payment URL
+      const res = await apiFetch(`${API_BASE}/api/payment/phonepe/initiate`, {
+        method: "POST",
+        body: JSON.stringify({ addressId: selectedAddressId }),
+      });
 
+      // 2. Redirect User to PhonePe Page
+      if (res.url) {
+        window.location.href = res.url; 
+      } else {
+        toast.error("Failed to get payment URL");
+        setPlacingOrder(false);
+      }
+    } catch (error) {
+      console.error("PhonePe Error", error);
+      toast.error("Failed to initiate PhonePe payment");
+      setPlacingOrder(false);
+    }
+  };
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -202,9 +229,22 @@ export default function CheckoutPage() {
                   <span className="font-bold text-2xl font-serif">{fmt(FINAL_PAYABLE)}</span>
                 </div>
               </div>
+              
 
               <Button onClick={handlePlaceOrder} disabled={placingOrder || !selectedAddressId} className="w-full mt-6 bg-stone-900 hover:bg-orange-600 text-white h-14 text-lg font-bold shadow-lg rounded-xl group">
-                {placingOrder ? <><Loader2 className="animate-spin mr-2" /> Processing...</> : <span className="flex items-center justify-center gap-2">Place Order <ChevronRight size={18} /></span>}
+                Cash on Delivery</Button>
+
+            {/* Razorpay / Online Button (Keep or Remove) */}
+            
+            {/* PhonePe Button */}
+            <Button 
+              onClick={handlePhonePePayment} 
+              disabled={placingOrder || !selectedAddressId}
+              className="w-full bg-[#5f259f] hover:bg-[#4a1c7d] text-white h-12 font-bold shadow-lg"
+            >
+              {placingOrder ? <Loader2 className="animate-spin mr-2"/> : <Smartphone className="mr-2 w-4 h-4"/>}
+              Pay via PhonePe
+         
               </Button>
             </div>
           </div>

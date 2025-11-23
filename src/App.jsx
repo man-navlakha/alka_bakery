@@ -19,6 +19,8 @@ import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import AddressPage from "./pages/AddressPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrdersPage from "./pages/OrdersPage";
+import PaymentStatus from "./pages/PaymentStatus";
+import AdminOrders from "./pages/admin/AdminOrders";
 // import Toaster from "react-hot-toast";
 
 export default function App() {
@@ -55,6 +57,15 @@ export default function App() {
     </PrivateRoute>
   } 
 />
+
+<Route 
+  path="/payment/status" 
+  element={
+    <PrivateRoute>
+      <PaymentStatus />
+    </PrivateRoute>
+  } 
+/>
             {/* User Routes */}
             <Route path="/profile" element={<Profile />} />
 
@@ -62,6 +73,7 @@ export default function App() {
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<AdminProductManagement />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/admin/reviews" element={<AdminReviews />} />
               <Route path="/admin/coupon" element={<AdminCouponsPage />} />
               <Route path="/admin" element={<AdminDashboard />} />

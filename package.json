@@ -1,7 +1,7 @@
 {
   "name": "alka_bakery",
   "private": true,
-  "version": "CHECKOUT PAGE - 23-11-2025- 1.02.08",
+  "version": "ADMIN PENAL ORDER PAGE - 23-11-2025- 1.02.10",
   "type": "module",
   "scripts": {
     "dev": "vite",
