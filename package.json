@@ -1,7 +1,7 @@
 {
   "name": "alka_bakery",
   "private": true,
-  "version": "CHECKOUT(ADDRESS) PAGE - 23-11-2025- 1.02.06",
+  "version": "CHECKOUT PAGE - 23-11-2025- 1.02.08",
   "type": "module",
   "scripts": {
     "dev": "vite",

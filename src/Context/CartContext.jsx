@@ -1,5 +1,6 @@
 // src/Context/CartContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "./AuthProvider"; // 1. Import useAuth
 
 const API_BASE = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 const CART_ID_KEY = "alka_cart_id";
@@ -7,17 +8,18 @@ const CART_ID_KEY = "alka_cart_id";
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+    const { user } = useAuth(); // 2. Get user status
     const [cart, setCart] = useState(null);
     const [cartId, setCartId] = useState(() => localStorage.getItem(CART_ID_KEY) || null);
-    const [availableCoupons, setAvailableCoupons] = useState([]); // New State
+    const [availableCoupons, setAvailableCoupons] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // 3. Add 'user' to dependency array so cart reloads/merges on login
     useEffect(() => {
         loadCart();
-        loadCoupons(); // Fetch coupons on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        loadCoupons();
+    }, [user]); 
 
     const getCommonHeaders = () => {
         const token = localStorage.getItem("accessToken");
@@ -74,7 +76,8 @@ export function CartProvider({ children }) {
             updateCartId(res, data);
             setCart(data);
         } catch (e) {
-            console.warn("loadCart failed:", e);
+            // Don't log error if it's just a 404/empty state initially
+            console.warn("loadCart info:", e.message);
             setCart(null);
         } finally {
             setLoading(false);
@@ -86,7 +89,6 @@ export function CartProvider({ children }) {
         setCart(data);
     }
 
-    // ... (addProduct, updateItemQuantity, removeItem functions remain unchanged) ...
     async function addProduct(product, opts = {}) {
         if (!product) return;
         const unit = product.unit;
@@ -129,8 +131,8 @@ export function CartProvider({ children }) {
 
     async function updateItemQuantity(itemId, newQty) {
         if (!itemId) return;
-        const q = Math.max(1, Number(newQty) || 1);
-
+        
+        // Optimistic Update (Optional, keeping simple for now)
         setLoading(true);
         setError("");
         try {
@@ -183,41 +185,36 @@ export function CartProvider({ children }) {
     }
 
     async function applyCoupon(code) {
-    if (!code) return;
-    setLoading(true);
-    setError("");
-    try {
-        const res = await fetch(`${API_BASE}/api/cart/apply-coupon`, {
-            method: "POST",
-            headers: getCommonHeaders(),
-            credentials: "include",
-            body: JSON.stringify({ code }),
-        });
+        if (!code) return;
+        setLoading(true);
+        setError("");
+        try {
+            const res = await fetch(`${API_BASE}/api/cart/apply-coupon`, {
+                method: "POST",
+                headers: getCommonHeaders(),
+                credentials: "include",
+                body: JSON.stringify({ code }),
+            });
 
-        const text = await res.text();
-        if (!res.ok) {
-            // parse server error body safely
-            let errData = {};
-            try { errData = text ? JSON.parse(text) : {}; } catch (parseErr) { /* ignore parse error */ }
-            const msg = errData?.message || errData?.error || `Failed to apply coupon (${res.status})`;
-            throw new Error(msg);
+            const text = await res.text();
+            if (!res.ok) {
+                let errData = {};
+                try { errData = text ? JSON.parse(text) : {}; } catch (parseErr) { /* ignore */ }
+                const msg = errData?.message || errData?.error || `Failed to apply coupon`;
+                throw new Error(msg);
+            }
+
+            const data = text ? JSON.parse(text) : null;
+            syncCartFromResponse(res, data);
+            return data;
+        } catch (e) {
+            console.error("applyCoupon failed:", e);
+            setError(e.message || "Failed to apply coupon");
+            throw e;
+        } finally {
+            setLoading(false);
         }
-
-        const data = text ? JSON.parse(text) : null;
-        syncCartFromResponse(res, data);
-
-        // return data so callers can inspect if needed
-        return data;
-    } catch (e) {
-        console.error("applyCoupon failed:", e);
-        setError(e.message || "Failed to apply coupon");
-        // IMPORTANT: rethrow so UI/components know the call failed
-        throw e;
-    } finally {
-        setLoading(false);
     }
-}
-
 
     async function removeCoupon() {
         setLoading(true);
@@ -245,7 +242,6 @@ export function CartProvider({ children }) {
         }
     }
 
-    // ----------------- Derived values -----------------
     const allItems = cart?.items || cart?.cart_items || [];
     const items = allItems.filter((it) => !it.is_gift);
     const giftItems = allItems.filter((it) => it.is_gift);
@@ -272,7 +268,7 @@ export function CartProvider({ children }) {
         autoCouponCode,
         autoDiscount,
         freeGiftApplied,
-        availableCoupons, // Export available coupons
+        availableCoupons,
         loading,
         error,
         addProduct,
