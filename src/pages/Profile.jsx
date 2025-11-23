@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../Context/AuthProvider";
 import { User, Mail, Calendar, LogOut, Save } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import MapSearch from "./MapSearch";
 
 export default function Profile() {
   const { user, logout, API_URL } = useAuth();
@@ -89,6 +91,10 @@ export default function Profile() {
                 </button>
             </div>
 
+            <Link to="/addresses" className="text-orange-600 hover:underline">
+  Manage Addresses
+</Link>
+
             <form onSubmit={handleUpdateProfile} className="space-y-6">
                 {/* Name Field */}
                 <div>
@@ -159,6 +165,8 @@ export default function Profile() {
                 )}
             </form>
         </div>
+
+        <MapSearch />
       </div>
     </div>
     

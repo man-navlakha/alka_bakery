@@ -9,13 +9,14 @@ import { CartDrawerProvider } from "./Context/CartDrawerContext";
 import { PrivateRoute } from "./PrivateRoute";
 import Navbar from "./components/self/Navbar";
 import CartSidebarGlobal from "./components/cart/CartSidebarGlobal";
-import Checkout from "@/pages/Checkout";
 import AdminRoute from "./AdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductManagement from "./pages/admin/AdminProductManagement";
 import ProductPage from "./components/self/shop/ProductPage";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
+
+import AddressPage from "./pages/AddressPage";
 // import Toaster from "react-hot-toast";
 
 export default function App() {
@@ -32,8 +33,8 @@ export default function App() {
             <Route path="/product/:id" element={<ProductPage />} />
             <Route path="/shop" element={
               <ShopWithApi />} />
-              <Route element={<PrivateRoute><Checkout /></PrivateRoute>} path="/checkout" />
-
+             
+<Route element={<PrivateRoute><AddressPage /></PrivateRoute>} path="/addresses" />
             {/* User Routes */}
             <Route path="/profile" element={<Profile />} />
 
