@@ -21,67 +21,75 @@ import CheckoutPage from "./pages/CheckoutPage";
 import OrdersPage from "./pages/OrdersPage";
 import PaymentStatus from "./pages/PaymentStatus";
 import AdminOrders from "./pages/admin/AdminOrders";
-// import Toaster from "react-hot-toast";
+import TrackingPage from "./pages/TrackingPage";
+// App.jsx (top)
+import toast, { Toaster } from "react-hot-toast";
+
 
 export default function App() {
   return (
     <CartProvider>
       <CartDrawerProvider>
-          <Navbar />
-          <Routes>
+        <Navbar />
+        <Routes>
 
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<Main />} />
-            <Route path="/product/:id" element={<ProductPage />} />
-            <Route path="/shop" element={
-              <ShopWithApi />} />
-             
-<Route element={<PrivateRoute><AddressPage /></PrivateRoute>} path="/addresses" />
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Register />} />
+          <Route path="/" element={<Main />} />
+          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/shop" element={
+            <ShopWithApi />} />
 
-<Route 
-              path="/checkout" 
-              element={
-                <PrivateRoute>
-                  <CheckoutPage />
-                </PrivateRoute>
-              } 
-            />
+          <Route element={<PrivateRoute><AddressPage /></PrivateRoute>} path="/addresses" />
 
-            <Route 
-  path="/orders" 
-  element={
-    <PrivateRoute>
-      <OrdersPage />
-    </PrivateRoute>
-  } 
-/>
+          <Route
+            path="/checkout"
+            element={
+              <PrivateRoute>
+                <CheckoutPage />
+              </PrivateRoute>
+            }
+          />
 
-<Route 
-  path="/payment/status" 
-  element={
-    <PrivateRoute>
-      <PaymentStatus />
-    </PrivateRoute>
-  } 
-/>
-            {/* User Routes */}
-            <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/orders"
+            element={
+              <PrivateRoute>
+                <OrdersPage />
+              </PrivateRoute>
+            }
+          />
 
-            {/* Admin Routes */}
-            <Route element={<AdminRoute />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/products" element={<AdminProductManagement />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/reviews" element={<AdminReviews />} />
-              <Route path="/admin/coupon" element={<AdminCouponsPage />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-            </Route>
-          </Routes>
+          <Route
+            path="/payment/status"
+            element={
+              <PrivateRoute>
+                <PaymentStatus />
+              </PrivateRoute>
+            }
+          />
+          {/* User Routes */}
+          <Route path="/profile" element={<Profile />} />
 
-          {/* Global cart drawer – always mounted */}
-          <CartSidebarGlobal />
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/products" element={<AdminProductManagement />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/admin/reviews" element={<AdminReviews />} />
+            <Route path="/admin/coupon" element={<AdminCouponsPage />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+
+
+            <Route path="/track/:deliveryId" element={<TrackingPage />} />
+            <Route path="/track" element={<TrackingPage />} />
+
+          </Route>
+        </Routes>
+  <Toaster position="bottom-right" />
+        {/* Global cart drawer – always mounted */}
+        <CartSidebarGlobal />
       </CartDrawerProvider>
     </CartProvider>
 

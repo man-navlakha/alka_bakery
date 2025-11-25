@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from "./Context/AuthProvider.jsx";
 import { BrowserRouter } from "react-router-dom"; // 1. Import BrowserRouter
+import "leaflet/dist/leaflet.css";
 
 createRoot(document.getElementById('root')).render(
   // 2. Wrap everything with BrowserRouter first
