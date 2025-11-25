@@ -1,6 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
-import toast, { Toaster } from 'react-hot-toast';
-
+// src/components/Reviews.jsx
+import React, { useState, useEffect } from "react";
+import { Star, CheckCircle2 } from "lucide-react"; // Import CheckCircle2
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { apiFetch } from "../Context/apiFetch";
+import toast from "react-hot-toast";
 /**
  * Reviews.jsx
  *
@@ -181,7 +185,7 @@ export function ReviewSummary({ productId }) {
 
         <div className="flex-1">
           <div className="space-y-2">
-            {[5,4,3,2,1].map((star) => {
+            {[5, 4, 3, 2, 1].map((star) => {
               const count = (counts?.[String(star)] ?? counts?.[star] ?? 0);
               const pct = total ? Math.round((count / total) * 100) : 0;
               return (
@@ -204,221 +208,98 @@ export function ReviewSummary({ productId }) {
 /* ----------------------
    ReviewForm component
    ---------------------- */
-export function ReviewForm({ productId, onSaved }) {
+export function ReviewForm({ productId, onSaved, isVerified = false }) {
   const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [isVerified, setIsVerified] = useState(false);
-  const [files, setFiles] = useState([]); // File objects
-  const [previews, setPreviews] = useState([]); // {url, name}
-  const [progress, setProgress] = useState(0);
+  const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
-  // limits
-  const MAX_FILES = 5;
-  const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
-
-  useEffect(() => {
-    // cleanup object URLs
-    return () => previews.forEach(p => URL.revokeObjectURL(p.url));
-  }, [previews]);
-
-  function onDropFiles(selectedFiles) {
-    const arr = Array.from(selectedFiles);
-    const trimmed = arr.slice(0, MAX_FILES - files.length);
-    const valid = [];
-    const newPreviews = [];
-
-    for (let f of trimmed) {
-      if (f.size > MAX_FILE_SIZE) {
-        setError(`"${f.name}" too large (max ${MAX_FILE_SIZE/1024/1024}MB).`);
-        continue;
-      }
-      if (!/^image\//.test(f.type)) {
-        setError(`"${f.name}" is not an image.`);
-        continue;
-      }
-      valid.push(f);
-      newPreviews.push({ url: URL.createObjectURL(f), name: f.name });
-    }
-
-    setFiles(prev => [...prev, ...valid]);
-    setPreviews(prev => [...prev, ...newPreviews]);
-  }
-
-  function handleFileInput(e) {
-    onDropFiles(e.target.files);
-    e.target.value = null;
-  }
-
-  function removePreview(idx) {
-    setFiles(fs => fs.filter((_, i) => i !== idx));
-    const p = previews[idx];
-    if (p) URL.revokeObjectURL(p.url);
-    setPreviews(ps => ps.filter((_, i) => i !== idx));
-  }
-
-  function validate() {
-    setError("");
-    if (!rating && rating !== 0) { setError("Rating required"); return false; }
-    if (!body || body.trim().length < 10) { setError("Please write at least 10 characters"); return false; }
-    return true;
-  }
-
-  // upload via XMLHttpRequest so we can get upload progress events
-  function postFormData(fd, onProgress) {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${API_BASE}/api/products/${encodeURIComponent(productId)}/reviews`);
-      // attach auth header if needed
-      const authHeaders = getAuthHeaders();
-      if (authHeaders.Authorization) xhr.setRequestHeader("Authorization", authHeaders.Authorization);
-
-      xhr.upload.onprogress = (ev) => {
-        if (ev.lengthComputable) {
-          const pct = Math.round((ev.loaded / ev.total) * 100);
-          onProgress && onProgress(pct);
-        }
-      };
-      xhr.onerror = () => reject(new Error("Upload failed"));
-      xhr.onload = () => {
-        try {
-          const status = xhr.status;
-          const text = xhr.responseText;
-          if (status >= 200 && status < 300) {
-            resolve(JSON.parse(text || "{}"));
-          } else {
-            reject(new Error(text || `HTTP ${status}`));
-          }
-        } catch (e) {
-          reject(e);
-        }
-      };
-      xhr.send(fd);
-    });
-  }
-
-  async function handleSubmit(e) {
-    e?.preventDefault();
-    if (!validate()) return;
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setSubmitting(true);
-    setProgress(0);
-    setError("");
-
-    const fd = new FormData();
-    fd.append("rating", String(rating));
-    if (title) fd.append("title", title);
-    fd.append("body", body);
-    if (displayName) fd.append("display_name", displayName);
-    if (isVerified) fd.append("is_verified_purchase", "true");
-
-    files.forEach((f) => fd.append("files", f, f.name));
-
+    
     try {
-      const result = await postFormData(fd, (pct) => setProgress(pct));
-      setSubmitting(false);
-      setFiles([]);
-      previews.forEach(p => URL.revokeObjectURL(p.url));
-      setPreviews([]);
-      setTitle("");
-      setBody("");
-      setDisplayName("");
+      // 1. Use FormData because the backend uses 'multer' (upload.array)
+      const formData = new FormData();
+      formData.append("rating", rating);
+      formData.append("body", comment); // Backend expects 'body', not 'comment'
+      formData.append("is_verified_purchase", isVerified);
+      
+      // 2. Use the correct URL: /api/products/:id/reviews
+      // Note: We use standard fetch here to handle FormData correctly (apiFetch might force JSON headers)
+      const token = localStorage.getItem("accessToken");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_BASE}/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: headers, // Let browser set Content-Type for FormData
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to submit review");
+      }
+
+      if (onSaved) onSaved();
+      setComment("");
       setRating(5);
-      setIsVerified(false);
-      setProgress(0);
-      if (onSaved) onSaved(result);
-      // Optionally: emit an event or refresh review list via parent
-      const ev = new CustomEvent("review:created", { detail: result });
-      window.dispatchEvent(ev);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to submit");
+      toast.success("Review submitted!");
+      
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to submit review");
+    } finally {
       setSubmitting(false);
     }
-  }
-
-  // small star picker
-  function StarPicker({ value, onChange }) {
-    return (
-      <div className="flex items-center gap-1">
-        {[1,2,3,4,5].map((s) => (
-          <button key={s} type="button" onClick={() => onChange(s)} className={`text-2xl ${s <= value ? 'text-amber-500' : 'text-gray-300'}`}>★</button>
-        ))}
-      </div>
-    );
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg mr-1 p-3  border shadow-sm">
-      <h3 className="font-semibold mb-2">Write a review</h3>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="text-xs font-medium">Your rating</label>
-          <StarPicker value={rating} onChange={(v) => setRating(v)} />
-        </div>
-        <div>
-          <label className="text-xs font-medium">Display name (optional)</label>
-          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="mt-1 w-full border rounded px-3 py-2 text-sm" placeholder="e.g. Priya K." />
-        </div>
-      </div>
-
-      <div className="mt-3">
-        <label className="text-xs font-medium">Title (optional)</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 w-full border rounded px-3 py-2 text-sm" placeholder="Short headline" />
-      </div>
-
-      <div className="mt-3">
-        <label className="text-xs font-medium">Your review</label>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} className="mt-1 w-full border rounded px-3 py-2 text-sm h-28" placeholder="Share your experience (taste, freshness, packaging)"></textarea>
-      </div>
-
-      <div className="mt-3">
-        <label className="text-xs font-medium">Photos (optional)</label>
-        <div className="mt-2 flex flex-col gap-2 items-center">
-          <input type="file" accept="image/*" multiple onChange={handleFileInput} />
-          
-          <div className="text-xs text-gray-500">Up to {MAX_FILES} images, max 3MB each</div>
-        </div>
-
-        {previews.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto">
-            {previews.map((p, i) => (
-              <div key={i} className="relative w-24 h-24 rounded overflow-hidden border">
-                <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
-                <button type="button" onClick={() => removePreview(i)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs">×</button>
-              </div>
-            ))}
-          </div>
-        )}
+    <form onSubmit={handleSubmit} className="space-y-4 py-2">
       
-      </div>
-
-      <div className="mt-3 flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={isVerified} onChange={(e) => setIsVerified(e.target.checked)} />
-          <span>Verified purchase</span>
-        </label>
-
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => { setFiles([]); previews.forEach(p => URL.revokeObjectURL(p.url)); setPreviews([]); }} className="text-sm text-gray-500">Clear images</button>
+      {/* Star Rating Input */}
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium text-stone-700">Rating</label>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              className={`p-1 transition-transform hover:scale-110 ${
+                star <= rating ? "text-yellow-500" : "text-stone-300"
+              }`}
+            >
+              <Star fill={star <= rating ? "currentColor" : "none"} size={24} />
+            </button>
+          ))}
         </div>
       </div>
 
-      {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
-
-      {submitting && <div className="mt-3 text-sm text-gray-600">Uploading... {progress}%</div>}
-
-      <div className="mt-4 flex gap-3">
-        <button disabled={submitting} type="submit" className="bg-amber-500 text-white px-4 py-2 rounded font-medium shadow">
-          {submitting ? "Submitting..." : "Submit review"}
-        </button>
-        <button type="button" onClick={() => { setRating(5); setTitle(""); setBody(""); setFiles([]); previews.forEach(p => URL.revokeObjectURL(p.url)); setPreviews([]); }} className="px-4 py-2 border rounded">
-          Reset
-        </button>
+      {/* Review Text */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-stone-700">Your Experience</label>
+        <Textarea
+          placeholder="How was the taste? The freshness?"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="min-h-[100px] bg-stone-50"
+          required
+        />
       </div>
+
+      {/* Verified Purchase Badge */}
+      {isVerified && (
+        <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-100 text-green-700 text-sm font-medium">
+            <CheckCircle2 size={16} />
+            <span>Verified Purchase</span>
+        </div>
+      )}
+
+      <Button type="submit" disabled={submitting} className="w-full bg-orange-600 hover:bg-orange-700">
+        {submitting ? "Submitting..." : "Submit Review"}
+      </Button>
     </form>
   );
 }
@@ -458,12 +339,12 @@ export function ReviewList({ productId, pageSize = 5 }) {
 
   const handleHelpful = async (id) => {
     try {
-        const res = await fetch(`${API_BASE}/api/reviews/${id}/helpful`, { method: 'POST', headers: getAuthHeaders() });
-        if(!res.ok) throw new Error("Failed");
-        setReviews(curr => curr.map(r => r.id === id ? { ...r, helpful_count: (r.helpful_count || 0) + 1 } : r));
-        toast.success("Marked as helpful!");
+      const res = await fetch(`${API_BASE}/api/reviews/${id}/helpful`, { method: 'POST', headers: getAuthHeaders() });
+      if (!res.ok) throw new Error("Failed");
+      setReviews(curr => curr.map(r => r.id === id ? { ...r, helpful_count: (r.helpful_count || 0) + 1 } : r));
+      toast.success("Marked as helpful!");
     } catch {
-        toast.error("Please sign in to vote", { icon: '🔒' });
+      toast.error("Please sign in to vote", { icon: '🔒' });
     }
   };
 
@@ -472,65 +353,65 @@ export function ReviewList({ productId, pageSize = 5 }) {
       {/* Toolbar */}
       <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
         <h3 className="font-serif font-bold text-xl text-stone-900">Reviews</h3>
-        <select 
-            value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}
-            className="bg-stone-50 border border-stone-200 text-stone-700 text-sm rounded-lg p-2 outline-none focus:ring-2 focus:ring-orange-200"
+        <select
+          value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}
+          className="bg-stone-50 border border-stone-200 text-stone-700 text-sm rounded-lg p-2 outline-none focus:ring-2 focus:ring-orange-200"
         >
-            <option value="recent">Most Recent</option>
-            <option value="helpful">Most Helpful</option>
-            <option value="rating_desc">Highest Rated</option>
+          <option value="recent">Most Recent</option>
+          <option value="helpful">Most Helpful</option>
+          <option value="rating_desc">Highest Rated</option>
         </select>
       </div>
 
       {/* List */}
       {loading ? (
-         <div className="space-y-4 animate-pulse">
-             {[1,2,3].map(i => <div key={i} className="h-32 bg-stone-100 rounded-xl" />)}
-         </div>
+        <div className="space-y-4 animate-pulse">
+          {[1, 2, 3].map(i => <div key={i} className="h-32 bg-stone-100 rounded-xl" />)}
+        </div>
       ) : reviews.length === 0 ? (
-         <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-100">
-             <div className="text-4xl mb-2">📝</div>
-             <p className="text-stone-500 font-medium">No reviews yet. Be the first to write one!</p>
-         </div>
+        <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-100">
+          <div className="text-4xl mb-2">📝</div>
+          <p className="text-stone-500 font-medium">No reviews yet. Be the first to write one!</p>
+        </div>
       ) : (
-         <div className="space-y-6">
-             {reviews.map(r => (
-                 <div key={r.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
-                     <div className="flex justify-between items-start mb-3">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center font-bold text-stone-500 text-lg uppercase">
-                                {r.display_name?.[0] || "?"}
-                            </div>
-                            <div>
-                                <div className="font-bold text-stone-900 flex items-center gap-2">
-                                    {r.display_name || "Anonymous"}
-                                    {r.is_verified_purchase && (
-                                        <span className="flex items-center gap-1 text-[10px] uppercase bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100 tracking-wider font-bold">
-                                            <Icons.CheckBadge /> Verified
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-stone-400 mt-0.5">
-                                    <StarRatingDisplay rating={r.rating} size="sm" />
-                                    <span>•</span>
-                                    <span>{friendlyDate(r.created_at)}</span>
-                                </div>
-                            </div>
-                         </div>
-                     </div>
-                     
-                     {r.title && <h4 className="font-bold text-stone-800 mb-1">{r.title}</h4>}
-                     <p className="text-stone-600 leading-relaxed text-sm whitespace-pre-line">{r.body}</p>
+        <div className="space-y-6">
+          {reviews.map(r => (
+            <div key={r.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center font-bold text-stone-500 text-lg uppercase">
+                    {r.display_name?.[0] || "?"}
+                  </div>
+                  <div>
+                    <div className="font-bold text-stone-900 flex items-center gap-2">
+                      {r.display_name || "Anonymous"}
+                      {r.is_verified_purchase && (
+                        <span className="flex items-center gap-1 text-[10px] uppercase bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100 tracking-wider font-bold">
+                          <Icons.CheckBadge /> Verified
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-stone-400 mt-0.5">
+                      <StarRatingDisplay rating={r.rating} size="sm" />
+                      <span>•</span>
+                      <span>{friendlyDate(r.created_at)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                     {r.review_images?.length > 0 && (
-                         <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-                             {r.review_images.map(img => (
-                                 <img key={img.id} src={img.storage_path} alt="review" className="w-20 h-20 rounded-lg object-cover border border-stone-100" />
-                             ))}
-                         </div>
-                     )}
+              {r.title && <h4 className="font-bold text-stone-800 mb-1">{r.title}</h4>}
+              <p className="text-stone-600 leading-relaxed text-sm whitespace-pre-line">{r.body}</p>
 
-                            {/* admin replies */}
+              {r.review_images?.length > 0 && (
+                <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                  {r.review_images.map(img => (
+                    <img key={img.id} src={img.storage_path} alt="review" className="w-20 h-20 rounded-lg object-cover border border-stone-100" />
+                  ))}
+                </div>
+              )}
+
+              {/* admin replies */}
 
               {r.review_replies?.length > 0 && (
 
@@ -542,35 +423,35 @@ export function ReviewList({ productId, pageSize = 5 }) {
 
               )}
 
-                     <div className="mt-4 pt-4 border-t border-stone-50 flex items-center gap-4">
-                         <button 
-                            onClick={() => handleHelpful(r.id)}
-                            className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-orange-600 transition-colors group"
-                         >
-                             <div className="group-hover:scale-110 transition-transform"><Icons.ThumbsUp /></div>
-                             <span>Helpful ({r.helpful_count || 0})</span>
-                         </button>
-                     </div>
-                 </div>
-             ))}
-         </div>
+              <div className="mt-4 pt-4 border-t border-stone-50 flex items-center gap-4">
+                <button
+                  onClick={() => handleHelpful(r.id)}
+                  className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-orange-600 transition-colors group"
+                >
+                  <div className="group-hover:scale-110 transition-transform"><Icons.ThumbsUp /></div>
+                  <span>Helpful ({r.helpful_count || 0})</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Pagination */}
       <div className="mt-8 flex justify-center gap-2">
-          <button 
-            onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1}
-            className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <span className="px-4 py-2 bg-stone-100 rounded-lg text-sm font-bold text-stone-900">{page}</span>
-          <button 
-            onClick={() => setPage(p => p+1)} disabled={!hasMore && reviews.length < pageSize}
-            className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
+        <button
+          onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+          className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <span className="px-4 py-2 bg-stone-100 rounded-lg text-sm font-bold text-stone-900">{page}</span>
+        <button
+          onClick={() => setPage(p => p + 1)} disabled={!hasMore && reviews.length < pageSize}
+          className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
       </div>
     </div>
   );

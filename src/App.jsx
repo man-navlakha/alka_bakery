@@ -69,7 +69,11 @@ export default function App() {
               </PrivateRoute>
             }
           />
+
+            <Route path="/track/:deliveryId" element={<TrackingPage />} />
+            <Route path="/track" element={<TrackingPage />} />
           {/* User Routes */}
+          
           <Route path="/profile" element={<Profile />} />
 
           {/* Admin Routes */}
@@ -81,9 +85,6 @@ export default function App() {
             <Route path="/admin/coupon" element={<AdminCouponsPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
 
-
-            <Route path="/track/:deliveryId" element={<TrackingPage />} />
-            <Route path="/track" element={<TrackingPage />} />
 
           </Route>
         </Routes>
